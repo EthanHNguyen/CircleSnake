@@ -10,7 +10,7 @@ def collect_training(poly, ct_01):
     poly = torch.cat([poly[i][ct_01[i]] for i in range(batch_size)], dim=0)
     return poly
 
-
+# TODO - Change to accept bounding circle
 def prepare_training_init(ret, batch):
     ct_01 = batch['ct_01'].byte()
     init = {}

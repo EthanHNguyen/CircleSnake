@@ -135,10 +135,12 @@ class Dataset(data.Dataset):
         i_gt_4pys.append(img_gt_poly)
         c_gt_4pys.append(can_gt_poly)
 
+    # Function = Try to get octagon using extreme po
     def prepare_evolution(self, poly, extreme_point, img_init_polys, can_init_polys, img_gt_polys, can_gt_polys):
         x_min, y_min = np.min(extreme_point[:, 0]), np.min(extreme_point[:, 1])
         x_max, y_max = np.max(extreme_point[:, 0]), np.max(extreme_point[:, 1])
 
+        # TODO - Generate a circle instead of octagon
         octagon = snake_voc_utils.get_octagon(extreme_point)
         img_init_poly = snake_voc_utils.uniformsample(octagon, snake_config.poly_num)
         can_init_poly = snake_voc_utils.img_poly_to_can_poly(img_init_poly, x_min, y_min, x_max, y_max)
@@ -146,8 +148,11 @@ class Dataset(data.Dataset):
         img_gt_poly = snake_voc_utils.uniformsample(poly, len(poly) * snake_config.gt_poly_num)
         tt_idx = np.argmin(np.power(img_gt_poly - img_init_poly[0], 2).sum(axis=1))
         img_gt_poly = np.roll(img_gt_poly, -tt_idx, axis=0)[::len(poly)]
+
+        # GT Polygon
         can_gt_poly = snake_voc_utils.img_poly_to_can_poly(img_gt_poly, x_min, y_min, x_max, y_max)
 
+        # Form main polygons here. Will hold circles
         img_init_polys.append(img_init_poly)
         can_init_polys.append(can_init_poly)
         img_gt_polys.append(img_gt_poly)
@@ -157,6 +162,7 @@ class Dataset(data.Dataset):
         cp_id.append(is_id)
         cp_cls.append(cls_id)
 
+    # Uses all the above functions
     def __getitem__(self, index):
         ann = self.anns[index]
 
@@ -213,6 +219,7 @@ class Dataset(data.Dataset):
                 self.prepare_init(bbox, extreme_point, i_it_4pys, c_it_4pys, i_gt_4pys, c_gt_4pys, output_h, output_w)
                 self.prepare_evolution(poly, extreme_point, i_it_pys, c_it_pys, i_gt_pys, c_gt_pys)
 
+        # Now evolve the points
         ret = {'inp': inp}
         detection = {'ct_hm': ct_hm, 'wh': wh, 'ct_cls': ct_cls, 'ct_ind': ct_ind}
         init = {'i_it_4py': i_it_4pys, 'c_it_4py': c_it_4pys, 'i_gt_4py': i_gt_4pys, 'c_gt_4py': c_gt_4pys}

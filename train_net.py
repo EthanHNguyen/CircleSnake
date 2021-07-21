@@ -51,4 +51,5 @@ def main():
 
 
 if __name__ == "__main__":
+    # Config is loaded when the method is called with all the right options
     main()

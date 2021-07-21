@@ -194,7 +194,7 @@ def get_valid_shape_poly(poly):
         shape_polys.append(shape_poly)
     return shape_polys
 
-
+# Trying to generate all valid polys
 def get_valid_polys(polys):
     """create shape_polys and filter polys"""
     # convert polygons into shape_poly
@@ -360,7 +360,7 @@ def get_init(box):
     else:
         return get_box(box)
 
-
+# Change this to circle - primary file
 def get_octagon(ex):
     w, h = ex[3][0] - ex[1][0], ex[2][1] - ex[0][1]
     t, l, b, r = ex[0][1], ex[1][0], ex[2][1], ex[3][0]

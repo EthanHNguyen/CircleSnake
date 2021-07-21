@@ -5,14 +5,14 @@ class DatasetCatalog(object):
     dataset_attrs = {
         'CocoTrain': {
             'id': 'coco',
-            'data_root': 'data/coco/train2017',
-            'ann_file': 'data/coco/annotations/instances_train2017.json',
+            'data_root': 'data/monuseg/train',
+            'ann_file': 'data/monuseg/MoNuSeg_train2021.json',
             'split': 'train'
         },
         'CocoVal': {
             'id': 'coco',
-            'data_root': 'data/coco/val2017',
-            'ann_file': 'data/coco/annotations/instances_val2017.json',
+            'data_root': 'data/monuseg/test',
+            'ann_file': 'data/monuseg/MoNuSeg_test2021.json',
             'split': 'test'
         },
         'CocoMini': {
@@ -23,8 +23,8 @@ class DatasetCatalog(object):
         },
         'CocoTest': {
             'id': 'coco_test',
-            'data_root': 'data/coco/test2017',
-            'ann_file': 'data/coco/annotations/image_info_test-dev2017.json',
+            'data_root': 'data/monuseg/test',
+            'ann_file': 'data/monuseg/MoNuSeg_test2021.json',
             'split': 'test'
         },
         'CityscapesTrain': {

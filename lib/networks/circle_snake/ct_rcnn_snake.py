@@ -14,16 +14,13 @@ class Network(nn.Module):
     def __init__(self, num_layers, heads, head_conv=256, down_ratio=4, det_dir=''):
         super(Network, self).__init__()
 
-        # Backbone network
         self.dla = DLASeg('dla{}'.format(num_layers), heads,
                           pretrained=True,
                           down_ratio=down_ratio,
                           final_kernel=1,
                           last_level=5,
                           head_conv=head_conv)
-        # Center, height, width detection
         self.cp = ComponentDetection()
-        # Evolve the initial contour
         self.gcn = Evolution()
 
         det_dir = os.path.join(os.path.dirname(cfg.model_dir), cfg.det_model)

@@ -29,6 +29,7 @@ class Trainer(object):
         max_iter = len(data_loader)
         self.network.train()
         end = time.time()
+        # Read in input (the image with some data augmentation) and their ground truths
         for iteration, batch in enumerate(data_loader):
             data_time = time.time() - end
             iteration = iteration + 1
