@@ -30,23 +30,15 @@ class Evolution(nn.Module):
         return init
 
     def prepare_training_evolve(self, output, batch, init):
-        ct_num = batch['meta']['ct_num'].sum()
-        evolve = snake_gcn_utils.prepare_training_evolve(output['ex_pred'], init, ct_num)
+        evolve = snake_gcn_utils.prepare_training_evolve(output['ex_pred'], init)
         output.update({'i_it_py': evolve['i_it_py'], 'c_it_py': evolve['c_it_py'], 'i_gt_py': evolve['i_gt_py']})
-        evolve.update({'ind': init['ind'][:evolve['i_gt_py'].size(0)]})
+        evolve.update({'py_ind': init['py_ind']})
         return evolve
 
     def prepare_testing_init(self, output):
-        i_it_4py = snake_decode.get_init(output['cp_box'][None])
-        i_it_4py = snake_gcn_utils.uniform_upsample(i_it_4py, snake_config.init_poly_num)
-        c_it_4py = snake_gcn_utils.img_poly_to_can_poly(i_it_4py)
-
-        i_it_4py = i_it_4py[0]
-        c_it_4py = c_it_4py[0]
-        ind = output['roi_ind'][output['cp_ind'].long()]
-        init = {'i_it_4py': i_it_4py, 'c_it_4py': c_it_4py, 'ind': ind}
+        init = snake_gcn_utils.prepare_testing_init(output['detection'][..., :4], output['detection'][..., 4])
+        output['detection'] = output['detection'][output['detection'][..., 4] > snake_config.ct_score]
         output.update({'it_ex': init['i_it_4py']})
-
         return init
 
     def prepare_testing_evolve(self, output, h, w):
@@ -89,12 +81,17 @@ class Evolution(nn.Module):
     def forward(self, output, cnn_feature, batch=None):
         ret = output
 
+        # If training, use ground truth boxes for evolution
         if batch is not None and 'test' not in batch['meta']:
+            # FIXME - Change to initialize from CircleNet
             with torch.no_grad():
                 init = self.prepare_training(output, batch)
 
             ex_pred = self.init_poly(self.init_gcn, cnn_feature, init['i_it_4py'], init['c_it_4py'], init['4py_ind'])
             ret.update({'ex_pred': ex_pred, 'i_gt_4py': output['i_gt_4py']})
+
+            # with torch.no_grad():
+            #     init = self.prepare_training_evolve(output, batch, init)
 
             py_pred = self.evolve_poly(self.evolve_gcn, cnn_feature, init['i_it_py'], init['c_it_py'], init['py_ind'])
             py_preds = [py_pred]
@@ -106,8 +103,10 @@ class Evolution(nn.Module):
                 py_preds.append(py_pred)
             ret.update({'py_pred': py_preds, 'i_gt_py': output['i_gt_py'] * snake_config.ro})
 
+        # Else, use prediction from CenterNet
         if not self.training:
             with torch.no_grad():
+                # FIXME - Change to initialize from CircleNet
                 init = self.prepare_testing_init(output)
                 ex = self.init_poly(self.init_gcn, cnn_feature, init['i_it_4py'], init['c_it_4py'], init['ind'])
                 ret.update({'ex': ex})

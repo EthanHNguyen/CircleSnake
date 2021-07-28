@@ -26,13 +26,13 @@ def snake_collator(batch):
         ct_01[i, :meta['ct_num'][i]] = 1
 
     if ct_num != 0:
-        wh[ct_01] = torch.Tensor(sum([b['wh'] for b in batch], []))
+        wh[ct_01] = torch.Tensor(sum([b['radius'] for b in batch], []))
         # reg[ct_01] = torch.Tensor(sum([b['reg'] for b in batch], []))
         ct_cls[ct_01] = torch.LongTensor(sum([b['ct_cls'] for b in batch], []))
         ct_ind[ct_01] = torch.LongTensor(sum([b['ct_ind'] for b in batch], []))
 
-    detection = {'ct_hm': ct_hm, 'wh': wh, 'ct_cls': ct_cls, 'ct_ind': ct_ind, 'ct_01': ct_01.float()}
-    # detection = {'ct_hm': ct_hm, 'wh': wh, 'reg': reg, 'ct_cls': ct_cls, 'ct_ind': ct_ind, 'ct_01': ct_01.float()}
+    detection = {'ct_hm': ct_hm, 'radius': wh, 'ct_cls': ct_cls, 'ct_ind': ct_ind, 'ct_01': ct_01.float()}
+    # detection = {'ct_hm': ct_hm, 'radius': radius, 'reg': reg, 'ct_cls': ct_cls, 'ct_ind': ct_ind, 'ct_01': ct_01.float()}
     ret.update(detection)
 
     from lib.utils.snake import snake_config
@@ -241,6 +241,7 @@ def ext_snake_collator(batch):
 
 _collators = {
     'snake': snake_collator,
+    'circle_snake': snake_collator,
     'ct': snake_collator,
     'rcnn_snake': rcnn_snake_collator,
     'ct_rcnn': rcnn_snake_collator

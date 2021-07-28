@@ -174,7 +174,7 @@ class Dataset(data.Dataset):
                 self.prepare_evolution(poly, extreme_point, i_it_pys, c_it_pys, i_gt_pys, c_gt_pys)
 
         ret = {'inp': inp}
-        detection = {'ct_hm': ct_hm, 'wh': wh, 'ct_cls': ct_cls, 'ct_ind': ct_ind}
+        detection = {'ct_hm': ct_hm, 'radius': wh, 'ct_cls': ct_cls, 'ct_ind': ct_ind}
         init = {'i_it_4py': i_it_4pys, 'c_it_4py': c_it_4pys, 'i_gt_4py': i_gt_4pys, 'c_gt_4py': c_gt_4pys}
         evolution = {'i_it_py': i_it_pys, 'c_it_py': c_it_pys, 'i_gt_py': i_gt_pys, 'c_gt_py': c_gt_pys}
         ret.update(detection)

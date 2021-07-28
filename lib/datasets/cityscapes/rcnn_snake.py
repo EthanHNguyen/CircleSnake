@@ -235,7 +235,7 @@ class Dataset(data.Dataset):
         # the meaning of the returned data
         # inp: image
         # act_hm: 'ct_hm' means the heatmap of the object center; 'a' means 'amodal', which includes the complete object
-        # awh: 'wh' means the width and height of the object bounding box
+        # awh: 'radius' means the width and height of the object bounding box
         # act_ind: the index in an image, row * width + col
         # cp_hm: component heatmap
         # cp_ind: the index in an RoI

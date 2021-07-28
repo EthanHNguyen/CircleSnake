@@ -13,7 +13,6 @@ def fill_fc_weights(layers):
 
 
 class ComponentDetection(nn.Module):
-    # Define how to find the center point
     def __init__(self):
         super(ComponentDetection, self).__init__()
 

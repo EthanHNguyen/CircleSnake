@@ -26,13 +26,16 @@ def visualize_snake_detection(img, data):
     img = img_utils.bgr_to_rgb(img)
     blend = blend_hm_img(data['ct_hm'], img)
 
+    # Show the raw image
     plt.imshow(blend)
     ct_ind = np.array(data['ct_ind'])
     w = img.shape[1] // snake_config.down_ratio
     xs = ct_ind % w
     ys = ct_ind // w
-    for i in range(len(data['wh'])):
-        w, h = data['wh'][i]
+
+    # Show each bounding box
+    for i in range(len(data['radius'])):
+        w, h = data['radius'][i]
         x_min, y_min = xs[i] - w / 2, ys[i] - h / 2
         x_max, y_max = xs[i] + w / 2, ys[i] + h / 2
         plt.plot([x_min, x_min, x_max, x_max, x_min], [y_min, y_max, y_max, y_min, y_min])
