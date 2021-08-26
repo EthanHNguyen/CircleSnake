@@ -24,28 +24,29 @@ class Evolution(nn.Module):
                     nn.init.constant_(m.bias, 0)
 
     def prepare_training(self, output, batch):
-        init = snake_gcn_utils.prepare_training(output, batch)
-        output.update({'i_it_4py': init['i_it_4py'], 'i_it_py': init['i_it_py']})
-        output.update({'i_gt_4py': init['i_gt_4py'], 'i_gt_py': init['i_gt_py']})
+        init = snake_gcn_utils.prepare_training_circle(output, batch)
+        # output.update({'i_it_4py': init['i_it_4py'], 'i_it_py': init['i_it_py']})
+        # output.update({'i_gt_4py': init['i_gt_4py'], 'i_gt_py': init['i_gt_py']})
+        output.update({'i_it_py': init['i_it_py'], 'i_gt_py': init['i_gt_py']})
         return init
 
     def prepare_training_evolve(self, output, batch, init):
-        evolve = snake_gcn_utils.prepare_training_evolve(output['ex_pred'], init)
-        output.update({'i_it_py': evolve['i_it_py'], 'c_it_py': evolve['c_it_py'], 'i_gt_py': evolve['i_gt_py']})
+        evolve = snake_gcn_utils.prepare_training_evolve_circle(output['detection'], init)
+        output<.update({'i_it_py': evolve['i_it_py'], 'c_it_py': evolve['c_it_py'], 'i_gt_py': evolve['i_gt_py']})
         evolve.update({'py_ind': init['py_ind']})
         return evolve
 
     def prepare_testing_init(self, output):
-        init = snake_gcn_utils.prepare_testing_init(output['detection'][..., :4], output['detection'][..., 4])
-        output['detection'] = output['detection'][output['detection'][..., 4] > snake_config.ct_score]
-        output.update({'it_ex': init['i_it_4py']})
+        init = snake_gcn_utils.prepare_testing_init_circle(output['detection'][..., 3])
+        output['detection'] = output['detection'][output['detection'][..., 3] > snake_config.ct_score]
+        # output.update({'it_ex': init['i_it_4py']})
         return init
 
     def prepare_testing_evolve(self, output, h, w):
-        ex = output['ex']
-        ex[..., 0] = torch.clamp(ex[..., 0], min=0, max=w-1)
-        ex[..., 1] = torch.clamp(ex[..., 1], min=0, max=h-1)
-        evolve = snake_gcn_utils.prepare_testing_evolve(ex)
+        detection = output['detection']
+        detection[..., 0] = torch.clamp(detection[..., 0], min=0, max=w-1)
+        detection[..., 1] = torch.clamp(detection[..., 1], min=0, max=h-1)
+        evolve = snake_gcn_utils.prepare_testing_evolve_circle(detection)
         output.update({'it_py': evolve['i_it_py']})
         return evolve
 
@@ -83,15 +84,17 @@ class Evolution(nn.Module):
 
         # If training, use ground truth boxes for evolution
         if batch is not None and 'test' not in batch['meta']:
-            # FIXME - Change to initialize from CircleNet
             with torch.no_grad():
+                # Collect the ground truths for evolution
                 init = self.prepare_training(output, batch)
 
-            ex_pred = self.init_poly(self.init_gcn, cnn_feature, init['i_it_4py'], init['c_it_4py'], init['4py_ind'])
-            ret.update({'ex_pred': ex_pred, 'i_gt_4py': output['i_gt_4py']})
+            # No need for extreme point detection
+            # ex_pred = self.init_poly(self.init_gcn, cnn_feature, init['i_it_4py'], init['c_it_4py'], init['4py_ind'])
+            # ret.update({'ex_pred': ex_pred, 'i_gt_4py': output['i_gt_4py']})
 
-            # with torch.no_grad():
-            #     init = self.prepare_training_evolve(output, batch, init)
+            with torch.no_grad():
+                # Get octagon and propose initial points
+                init = self.prepare_training_evolve(output, batch, init)
 
             py_pred = self.evolve_poly(self.evolve_gcn, cnn_feature, init['i_it_py'], init['c_it_py'], init['py_ind'])
             py_preds = [py_pred]
@@ -106,10 +109,9 @@ class Evolution(nn.Module):
         # Else, use prediction from CenterNet
         if not self.training:
             with torch.no_grad():
-                # FIXME - Change to initialize from CircleNet
                 init = self.prepare_testing_init(output)
-                ex = self.init_poly(self.init_gcn, cnn_feature, init['i_it_4py'], init['c_it_4py'], init['ind'])
-                ret.update({'ex': ex})
+                # ex = self.init_poly(self.init_gcn, cnn_feature, init['i_it_4py'], init['c_it_4py'], init['ind'])
+                # ret.update({'ex': ex})
 
                 evolve = self.prepare_testing_evolve(output, cnn_feature.size(2), cnn_feature.size(3))
                 py = self.evolve_poly(self.evolve_gcn, cnn_feature, evolve['i_it_py'], evolve['c_it_py'], init['ind'])

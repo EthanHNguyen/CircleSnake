@@ -81,9 +81,7 @@ class Evolution(nn.Module):
     def forward(self, output, cnn_feature, batch=None):
         ret = output
 
-        # If training, use ground truth boxes for evolution
         if batch is not None and 'test' not in batch['meta']:
-            # FIXME - Change to initialize from CircleNet
             with torch.no_grad():
                 init = self.prepare_training(output, batch)
 
@@ -103,10 +101,8 @@ class Evolution(nn.Module):
                 py_preds.append(py_pred)
             ret.update({'py_pred': py_preds, 'i_gt_py': output['i_gt_py'] * snake_config.ro})
 
-        # Else, use prediction from CenterNet
         if not self.training:
             with torch.no_grad():
-                # FIXME - Change to initialize from CircleNet
                 init = self.prepare_testing_init(output)
                 ex = self.init_poly(self.init_gcn, cnn_feature, init['i_it_4py'], init['c_it_4py'], init['ind'])
                 ret.update({'ex': ex})
@@ -123,4 +119,3 @@ class Evolution(nn.Module):
                 ret.update({'py': pys})
 
         return output
-

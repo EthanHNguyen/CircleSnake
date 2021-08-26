@@ -50,6 +50,7 @@ KEYS = np.array([[26000, 26999], [24000, 24999], [25000, 25999],
 NUM_CLASS = {'person': 17914, 'rider': 1755, 'car': 26944, 'truck': 482,
              'bus': 379, 'train': 168, 'motorcycle': 735, 'bicycle': 3658}
 
+
 # ------------------------------------------------------------------------------
 
 
@@ -128,9 +129,9 @@ def augment(img, split, _data_rng, _eig_val, _eig_vec, mean, std, polys):
         poly = polys[seed][index]['poly']
         center[0], center[1] = poly[np.random.randint(len(poly))]
         border = scale[0] // 2 if scale[0] < width else width - scale[0] // 2
-        center[0] = np.clip(center[0], a_min=border, a_max=width-border)
+        center[0] = np.clip(center[0], a_min=border, a_max=width - border)
         border = scale[1] // 2 if scale[1] < height else height - scale[1] // 2
-        center[1] = np.clip(center[1], a_min=border, a_max=height-border)
+        center[1] = np.clip(center[1], a_min=border, a_max=height - border)
 
         # flip augmentation
         if np.random.random() < 0.5:
@@ -192,7 +193,8 @@ def handle_break_point(poly, axis, number, outside_border):
     for i in range(len(break_points)):
         current_poly = poly[break_points[i]]
         next_poly = poly[break_points[i] + 1]
-        mid_poly = current_poly + (next_poly - current_poly) * (number - current_poly[axis]) / (next_poly[axis] - current_poly[axis])
+        mid_poly = current_poly + (next_poly - current_poly) * (number - current_poly[axis]) / (
+                    next_poly[axis] - current_poly[axis])
 
         if outside_border(poly[break_points[i], axis], number):
             if mid_poly[axis] != next_poly[axis]:
@@ -207,13 +209,31 @@ def handle_break_point(poly, axis, number, outside_border):
     if outside_border(poly[-1, axis], number) != outside_border(poly[0, axis], number):
         current_poly = poly[-1]
         next_poly = poly[0]
-        mid_poly = current_poly + (next_poly - current_poly) * (number - current_poly[axis]) / (next_poly[axis] - current_poly[axis])
+        mid_poly = current_poly + (next_poly - current_poly) * (number - current_poly[axis]) / (
+                    next_poly[axis] - current_poly[axis])
         new_poly.append([mid_poly])
 
     return np.concatenate(new_poly)
 
 
 def transform_polys(polys, trans_output, output_h, output_w):
+    new_polys = []
+    for i in range(len(polys)):
+        poly = polys[i]
+        poly = data_utils.affine_transform(poly, trans_output)
+        poly = handle_break_point(poly, 0, 0, lambda x, y: x < y)
+        poly = handle_break_point(poly, 0, output_w, lambda x, y: x >= y)
+        poly = handle_break_point(poly, 1, 0, lambda x, y: x < y)
+        poly = handle_break_point(poly, 1, output_h, lambda x, y: x >= y)
+        if len(poly) == 0:
+            continue
+        if len(np.unique(poly, axis=0)) <= 2:
+            continue
+        new_polys.append(poly)
+    return new_polys
+
+
+def transform_circles(polys, trans_output, output_h, output_w):
     new_polys = []
     for i in range(len(polys)):
         poly = polys[i]
@@ -256,13 +276,13 @@ def get_valid_shape_poly(poly):
 
 
 def get_valid_polys(polys):
-    """create shape_polys and filter polys"""
+    """create shape_polys and filter gt_circles"""
     # convert polygons into shape_poly
     shape_polys = []
     for poly in polys:
         shape_polys.extend(get_valid_shape_poly(poly))
 
-    # remove polys being contained
+    # remove gt_circles being contained
     n = len(shape_polys)
     relation = np.zeros([n, n], dtype=np.bool)
     for i in range(n):
@@ -466,10 +486,10 @@ def get_ellipse(box, cp_num):
 
 def uniform_sample_init(poly):
     polys = []
-    ind = np.array(list(range(0, len(poly), len(poly)//4)))
+    ind = np.array(list(range(0, len(poly), len(poly) // 4)))
     next_ind = np.roll(ind, shift=-1)
     for i in range(len(ind)):
-        poly_ = poly[ind[i]:ind[i]+len(poly)//4]
+        poly_ = poly[ind[i]:ind[i] + len(poly) // 4]
         poly_ = np.append(poly_, [poly[next_ind[i]]], axis=0)
         poly_ = uniform_sample_segment(poly_, snake_config.init_poly_num // 4)
         polys.append(poly_)
@@ -539,6 +559,20 @@ def uniformsample(pgtnp_px2, newpnum):
 
         psamplenp = np.concatenate(psample, axis=0)
         return psamplenp
+
+
+def uniformsample_circle(gt_circle, newpnum):
+    img_init_poly = []
+    angles = np.linspace(0, 2 * np.pi, newpnum, endpoint=False)
+
+    for angle in angles:
+        x = gt_circle["circle_radius"] * np.cos(angle) + gt_circle["circle_center"][0]
+        y = gt_circle["circle_radius"] * np.sin(angle) + gt_circle["circle_center"][1]
+        img_init_poly.append([x, y])
+
+    img_init_poly = np.array(img_init_poly)
+
+    return img_init_poly
 
 
 def uniform_sample_segment(pgtnp_px2, newpnum):
@@ -614,7 +648,6 @@ def add_gaussian_noise(poly, x_min, y_min, x_max, y_max):
 
 
 def clip_poly_to_image(poly, h, w):
-    poly[:, 0] = np.clip(poly[:, 0], a_min=0, a_max=w-1)
-    poly[:, 1] = np.clip(poly[:, 1], a_min=0, a_max=h-1)
+    poly[:, 0] = np.clip(poly[:, 0], a_min=0, a_max=w - 1)
+    poly[:, 1] = np.clip(poly[:, 1], a_min=0, a_max=h - 1)
     return poly
-

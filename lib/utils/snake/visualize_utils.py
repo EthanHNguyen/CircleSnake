@@ -11,6 +11,39 @@ R = 8
 GREEN = (18, 127, 15)
 WHITE = (255, 255, 255)
 
+def visualize_snake_detection_circle(img, data):
+
+    def blend_hm_img(hm, img):
+        hm = np.max(hm, axis=0)
+        h, w = hm.shape[:2]
+        img = cv2.resize(img, dsize=(w, h), interpolation=cv2.INTER_LINEAR)
+        hm = np.array([255, 255, 255]) - (hm.reshape(h, w, 1) * colors[0]).astype(np.uint8)
+        ratio = 0.5
+        blend = (img * ratio + hm * (1 - ratio)).astype(np.uint8)
+        return blend
+
+    img = img_utils.bgr_to_rgb(img)
+
+    blend = blend_hm_img(data['ct_hm'], img)
+    blend = cv2.resize(img, dsize=(128, 128), interpolation=cv2.INTER_LINEAR)
+
+    ct_ind = np.array(data['ct_ind'])
+    w = img.shape[1] // snake_config.down_ratio
+    xs = ct_ind % w
+    ys = ct_ind // w
+
+    # Show each bounding circle
+    for i in range(len(data['radius'])):
+        radius = data['radius'][i][0]
+        x, y = data['circle_center'][i]
+        assert(abs(xs[i] - x) < 1)
+        assert(abs(ys[i] - y) < 1)
+        assert (x >= 0)
+        assert(y >= 0)
+        cv2.circle(blend, (int(x), int(y)), int(radius), (0, 255, 0), 1)
+    blend = cv2.resize(blend, (512, 512))
+    cv2.imshow("img", blend)
+    cv2.waitKey(0)
 
 def visualize_snake_detection(img, data):
 
@@ -34,8 +67,8 @@ def visualize_snake_detection(img, data):
     ys = ct_ind // w
 
     # Show each bounding box
-    for i in range(len(data['radius'])):
-        w, h = data['radius'][i]
+    for i in range(len(data['wh'])):
+        w, h = data['wh'][i]
         x_min, y_min = xs[i] - w / 2, ys[i] - h / 2
         x_max, y_max = xs[i] + w / 2, ys[i] + h / 2
         plt.plot([x_min, x_min, x_max, x_max, x_min], [y_min, y_max, y_max, y_min, y_min])
@@ -77,7 +110,7 @@ def visualize_cp_detection(img, data):
 def visualize_snake_evolution(img, data):
     img = img_utils.bgr_to_rgb(img)
     plt.imshow(img)
-    for poly in data['i_gt_py']:
+    for poly in data['i_it_py']:
         poly = poly * 4
         poly = np.append(poly, [poly[0]], axis=0)
         plt.plot(poly[:, 0], poly[:, 1])

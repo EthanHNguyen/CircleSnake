@@ -2,7 +2,7 @@ import os
 import cv2
 import json
 import numpy as np
-from lib.utils.snake import snake_config, snake_cityscapes_utils, snake_eval_utils, snake_poly_utils
+from lib.utils.snake import snake_config, snake_cityscapes_utils, snake_eval_utils, snake_poly_utils, visualize_utils
 from external.cityscapesscripts.evaluation import evalInstanceLevelSemanticLabeling
 import pycocotools.mask as mask_util
 import pycocotools.coco as coco
@@ -35,8 +35,8 @@ class Evaluator:
 
     def evaluate(self, output, batch):
         detection = output['detection']
-        score = detection[:, 4].detach().cpu().numpy()
-        label = detection[:, 5].detach().cpu().numpy().astype(int)
+        score = detection[:, 3].detach().cpu().numpy()
+        label = detection[:, 4].detach().cpu().numpy().astype(int)
         py = output['py'][-1].detach().cpu().numpy() * snake_config.down_ratio
 
         if len(py) == 0:
@@ -52,6 +52,15 @@ class Evaluator:
         ori_h, ori_w = img['height'], img['width']
         py = [data_utils.affine_transform(py_, trans_output_inv) for py_ in py]
         rles = snake_eval_utils.coco_poly_to_rle(py, ori_h, ori_w)
+
+        path = os.path.join("/home/sybbure/Documents/CircleSnake/data/monuseg/test", img["file_name"])
+        orig_img = cv2.imread(path)
+        # visualize_utils.visualize_snake_evolution(orig_img, output)
+
+        for polys in py:
+            cv2.polylines(orig_img, polys, True, (0, 255, 0), 1)
+        cv2.imshow("Prediction", orig_img)
+        cv2.waitKey(0)
 
         coco_dets = []
         for i in range(len(rles)):

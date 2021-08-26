@@ -21,9 +21,9 @@ class Network(nn.Module):
 
     def decode_detection(self, output, h, w):
         ct_hm = output['ct_hm']
-        wh = output['radius']
-        ct, detection = snake_decode.decode_ct_hm(torch.sigmoid(ct_hm), wh)
-        detection[..., :4] = data_utils.clip_to_image(detection[..., :4], h, w)
+        radius = output['radius']
+        ct, detection = snake_decode.decode_ct_hm_circle(torch.sigmoid(ct_hm), radius)
+        # detection[..., :4] = data_utils.clip_to_image(detection[..., :4], h, w)
         output.update({'ct': ct, 'detection': detection})
         return ct, detection
 
@@ -36,14 +36,14 @@ class Network(nn.Module):
         xs, ys = xs[:, None].float(), ys[:, None].float()
         ct = torch.cat([xs, ys], dim=1)
 
-        wh = batch['radius'][ct_01]
-        bboxes = torch.cat([xs - wh[..., 0:1] / 2,
-                            ys - wh[..., 1:2] / 2,
-                            xs + wh[..., 0:1] / 2,
-                            ys + wh[..., 1:2] / 2], dim=1)
-        score = torch.ones([len(bboxes)]).to(bboxes)[:, None]
+        radius = batch['radius'][ct_01]
+        # bboxes = torch.cat([xs - wh[..., 0:1] / 2,
+        #                     ys - wh[..., 1:2] / 2,
+        #                     xs + wh[..., 0:1] / 2,
+        #                     ys + wh[..., 1:2] / 2], dim=1)
+        score = torch.ones([len(radius)]).to(radius)[:, None]
         ct_cls = batch['ct_cls'][ct_01].float()[:, None]
-        detection = torch.cat([bboxes, score, ct_cls], dim=1)
+        detection = torch.cat([radius, score, ct_cls], dim=1)
 
         output['ct'] = ct[None]
         output['detection'] = detection[None]

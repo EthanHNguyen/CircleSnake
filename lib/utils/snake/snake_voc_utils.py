@@ -194,15 +194,15 @@ def get_valid_shape_poly(poly):
         shape_polys.append(shape_poly)
     return shape_polys
 
-# Trying to generate all valid polys
+# Trying to generate all valid gt_circles
 def get_valid_polys(polys):
-    """create shape_polys and filter polys"""
+    """create shape_polys and filter gt_circles"""
     # convert polygons into shape_poly
     shape_polys = []
     for poly in polys:
         shape_polys.extend(get_valid_shape_poly(poly))
 
-    # remove polys being contained
+    # remove gt_circles being contained
     n = len(shape_polys)
     relation = np.zeros([n, n], dtype=np.bool)
     for i in range(n):

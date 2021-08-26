@@ -38,6 +38,12 @@ def prepare_testing_init(box, score):
 
     return init
 
+def prepare_testing_init_circle(score):
+    ind = score > snake_config.ct_score
+    ind = torch.cat([torch.full([ind[i].sum()], i) for i in range(ind.size(0))], dim=0)
+    init = {'ind' : ind}
+    return init
+
 
 def get_box_match_ind(pred_box, score, gt_poly):
     if gt_poly.size(0) == 0:
@@ -113,7 +119,33 @@ def prepare_training(ret, batch):
 
     ct_num = batch['meta']['ct_num']
     init.update({'4py_ind': torch.cat([torch.full([ct_num[i]], i) for i in range(ct_01.size(0))], dim=0)})
-    init.update({'py_ind': init['4py_ind']})
+    init.update({'py_ind':  torch.cat([torch.full([ct_num[i]], i) for i in range(ct_01.size(0))], dim=0)})
+
+    if snake_config.train_pred_box:
+        prepare_training_box(ret, batch, init)
+
+    init['4py_ind'] = init['4py_ind'].to(ct_01.device)
+    init['py_ind'] = init['py_ind'].to(ct_01.device)
+
+    return init
+
+# Only the initial circular contour is required
+def prepare_training_circle(ret, batch):
+    ct_01 = batch['ct_01'].byte()
+    init = {}
+    # init.update({'i_it_4py': collect_training(batch['i_it_4py'], ct_01)})
+    # init.update({'c_it_4py': collect_training(batch['c_it_4py'], ct_01)})
+    # init.update({'i_gt_4py': collect_training(batch['i_gt_4py'], ct_01)})
+    # init.update({'c_gt_4py': collect_training(batch['c_gt_4py'], ct_01)})
+
+    init.update({'i_it_py': collect_training(batch['i_it_py'], ct_01)})
+    init.update({'c_it_py': collect_training(batch['c_it_py'], ct_01)})
+    init.update({'i_gt_py': collect_training(batch['i_gt_py'], ct_01)})
+    init.update({'c_gt_py': collect_training(batch['c_gt_py'], ct_01)})
+
+    ct_num = batch['meta']['ct_num']
+    init.update({'4py_ind': torch.cat([torch.full([ct_num[i]], i) for i in range(ct_01.size(0))], dim=0)})
+    init.update({'py_ind':  torch.cat([torch.full([ct_num[i]], i) for i in range(ct_01.size(0))], dim=0)})
 
     if snake_config.train_pred_box:
         prepare_training_box(ret, batch, init)
@@ -136,7 +168,29 @@ def prepare_training_evolve(ex, init):
         i_gt_py = extreme_utils.roll_array(i_gt_py, shift)
 
     i_it_py = snake_decode.get_octagon(ex[None])
+    # TODO - initialize with points along circle
+    # Read the center points and the radius.
+
     i_it_py = uniform_upsample(i_it_py, snake_config.poly_num)[0]
+
+    c_it_py = img_poly_to_can_poly(i_it_py)
+    evolve = {'i_it_py': i_it_py, 'c_it_py': c_it_py, 'i_gt_py': i_gt_py}
+
+    return evolve
+
+def prepare_training_evolve_circle(detection, init):
+    if not snake_config.train_pred_ex:
+        evolve = {'i_it_py': init['i_it_py'], 'c_it_py': init['c_it_py'], 'i_gt_py': init['i_gt_py']}
+        return evolve
+
+    i_gt_py = init['i_gt_py']
+
+    # if snake_config.train_nearest_gt:
+    #     shift = -(ex[:, :1] - i_gt_py).pow(2).sum(2).argmin(1)
+    #     i_gt_py = extreme_utils.roll_array(i_gt_py, shift)
+
+    i_it_py = snake_decode.get_circle(detection)
+
     c_it_py = img_poly_to_can_poly(i_it_py)
     evolve = {'i_it_py': i_it_py, 'c_it_py': c_it_py, 'i_gt_py': i_gt_py}
 
@@ -150,6 +204,19 @@ def prepare_testing_evolve(ex):
     else:
         i_it_pys = snake_decode.get_octagon(ex[None])
         i_it_pys = uniform_upsample(i_it_pys, snake_config.poly_num)[0]
+        c_it_pys = img_poly_to_can_poly(i_it_pys)
+    evolve = {'i_it_py': i_it_pys, 'c_it_py': c_it_pys}
+    return evolve
+
+def prepare_testing_evolve_circle(detection):
+
+    if len(detection) == 0:
+        i_it_pys = torch.zeros([0, snake_config.poly_num, 2]).to(detection)
+        c_it_pys = torch.zeros_like(i_it_pys)
+    else:
+        # TODO - Change me
+        i_it_pys = snake_decode.get_circle(detection)
+        # i_it_pys = uniform_upsample(i_it_pys, snake_config.poly_num)[0]
         c_it_pys = img_poly_to_can_poly(i_it_pys)
     evolve = {'i_it_py': i_it_pys, 'c_it_py': c_it_pys}
     return evolve

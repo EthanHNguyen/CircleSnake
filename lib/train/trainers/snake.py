@@ -21,13 +21,14 @@ class NetworkWrapper(nn.Module):
         scalar_stats = {}
         loss = 0
 
-        # Why choose sigmoid
         ct_loss = self.ct_crit(net_utils.sigmoid(output['ct_hm']), batch['ct_hm'])
         scalar_stats.update({'ct_loss': ct_loss})
         loss += ct_loss
 
-        # TODO - Replace with radius loss
-        wh_loss = self.wh_crit(output['radius'], batch['radius'], batch['ct_ind'], batch['ct_01'])
+        print("Pred", output['wh'].shape)
+        print("Target", batch['wh'].shape)
+
+        wh_loss = self.wh_crit(output['wh'], batch['wh'], batch['ct_ind'], batch['ct_01'])
         scalar_stats.update({'wh_loss': wh_loss})
         loss += 0.1 * wh_loss
 
@@ -50,4 +51,3 @@ class NetworkWrapper(nn.Module):
         image_stats = {}
 
         return output, loss, scalar_stats, image_stats
-

@@ -21,7 +21,7 @@ class Network(nn.Module):
 
     def decode_detection(self, output, h, w):
         ct_hm = output['ct_hm']
-        wh = output['radius']
+        wh = output['wh']
         ct, detection = snake_decode.decode_ct_hm(torch.sigmoid(ct_hm), wh)
         detection[..., :4] = data_utils.clip_to_image(detection[..., :4], h, w)
         output.update({'ct': ct, 'detection': detection})
@@ -36,7 +36,7 @@ class Network(nn.Module):
         xs, ys = xs[:, None].float(), ys[:, None].float()
         ct = torch.cat([xs, ys], dim=1)
 
-        wh = batch['radius'][ct_01]
+        wh = batch['wh'][ct_01]
         bboxes = torch.cat([xs - wh[..., 0:1] / 2,
                             ys - wh[..., 1:2] / 2,
                             xs + wh[..., 0:1] / 2,

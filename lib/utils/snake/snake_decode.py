@@ -1,3 +1,4 @@
+import numpy as np
 import torch.nn as nn
 import torch
 from lib.utils import data_utils
@@ -51,7 +52,7 @@ def topk(scores, K=40):
     return topk_score, topk_inds, topk_clses, topk_ys, topk_xs
 
 
-def decode_ct_hm(ct_hm, wh, reg=None, K=100):
+def decode_ct_hm(ct_hm, wh, reg=None, K=1000):
     batch, cat, height, width = ct_hm.size()
     ct_hm = nms(ct_hm)
 
@@ -110,6 +111,84 @@ def gaussian_radius(height, width, min_overlap=0.7):
     radius = torch.clamp(torch.min(torch.min(r1, r2), r3), min=0) / 3
     return torch.round(radius).long()
 
+def decode_ct_hm_circle(ct_hm, radius, reg=None, K=1000):
+    batch, cat, height, width = ct_hm.size()
+    ct_hm = nms(ct_hm)
+
+    scores, inds, clses, ys, xs = topk(ct_hm, K=K)
+    radius = transpose_and_gather_feat(radius, inds)
+    radius = radius.view(batch, K, 1)
+
+    if reg is not None:
+        reg = transpose_and_gather_feat(reg, inds)
+        reg = reg.view(batch, K, 2)
+        xs = xs.view(batch, K, 1) + reg[:, :, 0:1]
+        ys = ys.view(batch, K, 1) + reg[:, :, 1:2]
+    else:
+        xs = xs.view(batch, K, 1)
+        ys = ys.view(batch, K, 1)
+
+    clses = clses.view(batch, K, 1).float()
+    scores = scores.view(batch, K, 1)
+    ct = torch.cat([xs, ys], dim=2)
+    circles = torch.cat([xs, ys, radius], dim=2)
+
+    # bboxes = torch.cat([xs - radius[..., 0:1] / 2,
+    #                     ys - radius[..., 1:2] / 2,
+    #                     xs + radius[..., 0:1] / 2,
+    #                     ys + radius[..., 1:2] / 2], dim=2)
+
+    detection = torch.cat([circles, scores, clses], dim=2)
+
+    return ct, detection
+
+def get_circle(detection):
+    num_detections = detection.shape[0]
+    angles = torch.linspace(0, np.pi, snake_config.poly_num, dtype=torch.float)
+
+    circle = torch.ones((1, snake_config.poly_num, 2), dtype=torch.float).to('cuda')
+    circle[..., 0] = torch.cos(angles)
+    circle[..., 1] = torch.sin(angles)
+
+    radius = detection[..., 2].repeat(1, snake_config.poly_num).reshape(num_detections, snake_config.poly_num)
+    x = detection[..., 0].repeat(1, snake_config.poly_num).reshape(num_detections, snake_config.poly_num)
+    y = detection[..., 1].repeat(1, snake_config.poly_num).reshape(num_detections, snake_config.poly_num)
+
+    circles = circle.repeat(num_detections, 1, 1)
+    circles[..., 0] = radius * circles[..., 0] + x
+    circles[..., 1] = radius * circles[..., 1] + y
+
+    return circles
+
+def gaussian_radius(height, width, min_overlap=0.7):
+    height = torch.ceil(height)
+    width = torch.ceil(width)
+
+    a1 = 1
+    b1 = (height + width)
+    c1 = width * height * (1 - min_overlap) / (1 + min_overlap)
+    sq1 = torch.sqrt(b1.pow(2) - 4 * a1 * c1)
+    r1 = (b1 + sq1) / 2
+
+    a2 = 4
+    b2 = 2 * (height + width)
+    c2 = (1 - min_overlap) * width * height
+    sq2 = torch.sqrt(b2.pow(2) - 4 * a2 * c2)
+    r2 = (b2 + sq2) / 2
+
+    a3 = 4 * min_overlap
+    b3 = -2 * min_overlap * (height + width)
+    c3 = (min_overlap - 1) * width * height
+
+    r31 = torch.min(r1, r2)
+    det = b3.pow(2) - 4 * a3 * c3
+    sq3 = torch.sqrt(torch.clamp(det, min=0))
+    r32 = (b3 + sq3) / 2
+    r3_01 = (det < 0).float()
+    r3 = r3_01 * r31 + (1 - r3_01) * r32
+
+    radius = torch.clamp(torch.min(torch.min(r1, r2), r3), min=0) / 3
+    return torch.round(radius).long()
 
 def decode_ext_hm(ext_hm, bbox, vote, ct):
     h, w = ext_hm.size(2), ext_hm.size(3)
