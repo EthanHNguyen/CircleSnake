@@ -268,6 +268,8 @@ def load_model(net, optim, scheduler, recorder, model_dir, resume=True, epoch=-1
         os.system('rm -rf {}'.format(model_dir))
         return 0
 
+    print(model_dir)
+
     if not os.path.exists(model_dir):
         print(colored('WARNING: NO MODEL LOADED !!!', 'red'))
         return 0
@@ -309,6 +311,8 @@ def save_model(net, optim, scheduler, recorder, epoch, model_dir):
 def load_network(net, model_dir, resume=True, epoch=-1, strict=True):
     if not resume:
         return 0
+
+    print(model_dir)
 
     if not os.path.exists(model_dir):
         print(colored('WARNING: NO MODEL LOADED !!!', 'red'))

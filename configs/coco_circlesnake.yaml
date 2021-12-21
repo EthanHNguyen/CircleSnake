@@ -1,7 +1,7 @@
 model: 'coco'
 network: 'ro_34' # Syntax: arch_numOfLayers
 task: 'circle_snake' # Determines which network to call
-resume: true
+resume: false
 gpus: (0,) # Must be a tuple
 
 train:
@@ -11,14 +11,11 @@ train:
     gamma: 0.5
     batch_size: 2
     dataset: 'CocoTrain'
-    num_workers: 0
-
-    # FIXME - Revert to number of cores for training
-    epoch: 200
+    num_workers: 16
+    epoch: 100
 test:
     dataset: 'CocoVal'
     batch_size: 1
 
-#heads: {'ct_hm': 1, 'cl': 1, 'reg': 2}
-heads: {'ct_hm': 1, 'radius': 1, 'reg': 2}
-segm_or_bbox: 'segm' # FIXME - Revert to segm
+heads: {'ct_hm': 1, 'radius': 1}
+segm_or_bbox: 'bbox'

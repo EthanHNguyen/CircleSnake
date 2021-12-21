@@ -7,10 +7,9 @@ from lib.utils import data_utils
 import torch.utils.data as data
 from pycocotools.coco import COCO
 from lib.config import cfg
+import math
 
-
-# Loaded by the PyTorch dataloader
-
+debug = False
 
 class Dataset(data.Dataset):
     def __init__(self, ann_file, data_root, split):
@@ -115,8 +114,6 @@ class Dataset(data.Dataset):
         output_h, output_w = inp_out_hw[2:]
         instance_polys_ = []
         for instance in instance_polys:
-            # Why restrict annotations to polygon of greater than 4?
-            # Why use list comprehension if each instance only has one gt_circle?
             instance = [poly for poly in instance if len(poly) >= 4]
             for poly in instance:
                 # Clip x-coordinates to output's width
@@ -127,7 +124,7 @@ class Dataset(data.Dataset):
             polys = snake_coco_utils.filter_tiny_polys(instance)
             # Poly co-ordinates must be clock-wise
             polys = snake_coco_utils.get_cw_polys(polys)
-            # Filter for unique co-ordinatesee
+            # Filter for unique co-ordinates
             polys = [poly[np.sort(np.unique(poly, axis=0, return_index=True)[1])] for poly in polys]
             # Must have 4 or more points
             polys = [poly for poly in polys if len(poly) >= 4]
@@ -162,23 +159,19 @@ class Dataset(data.Dataset):
         ct_hm = ct_hm[cls_id]
         ct_cls.append(cls_id)
 
+        # Find circle from poly
         x, y, radius = snake_coco_utils.numerical_stable_circle(poly)
-        # x, y = gt_circle["circle_center"]
-        # radius = gt_circle["circle_radius"]
-
-        # assert(abs(x - x2) < 1)
-        # assert(abs(y - y2) < 1)
-        # assert(abs(radius - radius2) < 0.5)
+        # x, y, radius = int(round(x)), int(round(y)), int(math.ceil(radius))
+        x, y, radius = int(round(x)), int(round(y)), int(round(radius))
 
         ct = [x, y]
         ct_float = ct.copy()
         ct = np.round(ct).astype(np.int32)
-        radius = max(0, int(radius))
         data_utils.draw_umich_gaussian(ct_hm, ct, radius)
         retRadius.append([radius])
 
-        # assert(0 <= x < 128)
-        # assert (0 <= x < 128)
+        # assert(0 <= x <= 128)
+        # assert (0 <= y <= 128)
         retCenter.append([x, y])
 
         # assert (0 <= ct[1] * ct_hm.shape[1] + ct[0] < (128 ** 2))
@@ -285,7 +278,6 @@ class Dataset(data.Dataset):
             # index into object
             for j in range(len(instance_poly)):
                 poly = instance_poly[j]
-                # extreme_point = instance_points[j]
 
                 # Form a bbox from the annotation
                 x_min, y_min = np.min(poly[:, 0]), np.min(poly[:, 1])
@@ -301,14 +293,20 @@ class Dataset(data.Dataset):
                 self.prepare_evolution(poly, gt_circle, i_it_pys, c_it_pys, i_gt_pys, c_gt_pys)
 
         ret = {'inp': inp}
-        detection = {'ct_hm': ct_hm, 'center': center, 'circle_center': circle_center, 'radius': radius, 'reg': reg, 'ct_cls': ct_cls, 'ct_ind': ct_ind}
+        detection = {'ct_hm': ct_hm, 'center': center, 'circle_center': circle_center, 'radius': radius,
+                     'reg': reg, 'ct_cls': ct_cls, 'ct_ind': ct_ind}
         # init = {'i_it_4py': i_it_4pys, 'c_it_4py': c_it_4pys, 'i_gt_4py': i_gt_4pys, 'c_gt_4py': c_gt_4pys}
         evolution = {'i_it_py': i_it_pys, 'c_it_py': c_it_pys, 'i_gt_py': i_gt_pys, 'c_gt_py': c_gt_pys}
         ret.update(detection)
         # ret.update(init)
         ret.update(evolution)
-        # visualize_utils.visualize_snake_detection_circle(orig_img, ret)
-        # visualize_utils.visualize_snake_evolution(orig_img, ret)
+
+        if debug:
+            # Visualize the ground truth of CircleNet
+            visualize_utils.visualize_snake_detection_circle(orig_img, ret)
+
+            # Visualize the initial contour
+            visualize_utils.visualize_snake_evolution(orig_img, ret)
 
         ct_num = len(ct_ind)
         meta = {'center': center, 'scale': scale, 'img_id': img_id, 'ann': ann, 'ct_num': ct_num}

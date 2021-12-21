@@ -25,8 +25,8 @@ class NetworkWrapper(nn.Module):
         scalar_stats.update({'ct_loss': ct_loss})
         loss += ct_loss
 
-        print("Pred", output['wh'].shape)
-        print("Target", batch['wh'].shape)
+        # print("Pred", output['wh'].shape)
+        # print("Target", batch['wh'].shape)
 
         wh_loss = self.wh_crit(output['wh'], batch['wh'], batch['ct_ind'], batch['ct_01'])
         scalar_stats.update({'wh_loss': wh_loss})

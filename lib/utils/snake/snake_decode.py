@@ -133,26 +133,23 @@ def decode_ct_hm_circle(ct_hm, radius, reg=None, K=1000):
     ct = torch.cat([xs, ys], dim=2)
     circles = torch.cat([xs, ys, radius], dim=2)
 
-    # bboxes = torch.cat([xs - radius[..., 0:1] / 2,
-    #                     ys - radius[..., 1:2] / 2,
-    #                     xs + radius[..., 0:1] / 2,
-    #                     ys + radius[..., 1:2] / 2], dim=2)
-
     detection = torch.cat([circles, scores, clses], dim=2)
 
     return ct, detection
 
 def get_circle(detection):
     num_detections = detection.shape[0]
-    angles = torch.linspace(0, np.pi, snake_config.poly_num, dtype=torch.float)
+
+    # FIXME - DONT include end value
+    angles = torch.linspace(0, 2 * np.pi, snake_config.poly_num, dtype=torch.float)
 
     circle = torch.ones((1, snake_config.poly_num, 2), dtype=torch.float).to('cuda')
     circle[..., 0] = torch.cos(angles)
     circle[..., 1] = torch.sin(angles)
 
-    radius = detection[..., 2].repeat(1, snake_config.poly_num).reshape(num_detections, snake_config.poly_num)
-    x = detection[..., 0].repeat(1, snake_config.poly_num).reshape(num_detections, snake_config.poly_num)
-    y = detection[..., 1].repeat(1, snake_config.poly_num).reshape(num_detections, snake_config.poly_num)
+    radius = detection[..., 2].reshape(num_detections, 1).repeat(1, snake_config.poly_num)
+    x = detection[..., 0].reshape(num_detections, 1).repeat(1, snake_config.poly_num)
+    y = detection[..., 1].reshape(num_detections, 1).repeat(1, snake_config.poly_num)
 
     circles = circle.repeat(num_detections, 1, 1)
     circles[..., 0] = radius * circles[..., 0] + x

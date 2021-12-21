@@ -32,7 +32,7 @@ class Evolution(nn.Module):
 
     def prepare_training_evolve(self, output, batch, init):
         evolve = snake_gcn_utils.prepare_training_evolve_circle(output['detection'], init)
-        output<.update({'i_it_py': evolve['i_it_py'], 'c_it_py': evolve['c_it_py'], 'i_gt_py': evolve['i_gt_py']})
+        output.update({'i_it_py': evolve['i_it_py'], 'c_it_py': evolve['c_it_py'], 'i_gt_py': evolve['i_gt_py']})
         evolve.update({'py_ind': init['py_ind']})
         return evolve
 
@@ -82,7 +82,7 @@ class Evolution(nn.Module):
     def forward(self, output, cnn_feature, batch=None):
         ret = output
 
-        # If training, use ground truth boxes for evolution
+        # If training, use ground truth for evolution
         if batch is not None and 'test' not in batch['meta']:
             with torch.no_grad():
                 # Collect the ground truths for evolution
@@ -106,9 +106,10 @@ class Evolution(nn.Module):
                 py_preds.append(py_pred)
             ret.update({'py_pred': py_preds, 'i_gt_py': output['i_gt_py'] * snake_config.ro})
 
-        # Else, use prediction from CenterNet
+        # Else, use prediction from CircleNet
         if not self.training:
             with torch.no_grad():
+                # Threshold confidence scores
                 init = self.prepare_testing_init(output)
                 # ex = self.init_poly(self.init_gcn, cnn_feature, init['i_it_4py'], init['c_it_4py'], init['ind'])
                 # ret.update({'ex': ex})

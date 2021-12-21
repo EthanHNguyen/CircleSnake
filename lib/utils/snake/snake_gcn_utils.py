@@ -144,13 +144,13 @@ def prepare_training_circle(ret, batch):
     init.update({'c_gt_py': collect_training(batch['c_gt_py'], ct_01)})
 
     ct_num = batch['meta']['ct_num']
-    init.update({'4py_ind': torch.cat([torch.full([ct_num[i]], i) for i in range(ct_01.size(0))], dim=0)})
+    # init.update({'4py_ind': torch.cat([torch.full([ct_num[i]], i) for i in range(ct_01.size(0))], dim=0)})
     init.update({'py_ind':  torch.cat([torch.full([ct_num[i]], i) for i in range(ct_01.size(0))], dim=0)})
 
-    if snake_config.train_pred_box:
-        prepare_training_box(ret, batch, init)
+    # if snake_config.train_pred_box:
+    #     prepare_training_box(ret, batch, init)
 
-    init['4py_ind'] = init['4py_ind'].to(ct_01.device)
+    # init['4py_ind'] = init['4py_ind'].to(ct_01.device)
     init['py_ind'] = init['py_ind'].to(ct_01.device)
 
     return init
@@ -214,7 +214,6 @@ def prepare_testing_evolve_circle(detection):
         i_it_pys = torch.zeros([0, snake_config.poly_num, 2]).to(detection)
         c_it_pys = torch.zeros_like(i_it_pys)
     else:
-        # TODO - Change me
         i_it_pys = snake_decode.get_circle(detection)
         # i_it_pys = uniform_upsample(i_it_pys, snake_config.poly_num)[0]
         c_it_pys = img_poly_to_can_poly(i_it_pys)

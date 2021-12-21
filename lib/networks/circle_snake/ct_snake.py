@@ -23,7 +23,7 @@ class Network(nn.Module):
         ct_hm = output['ct_hm']
         radius = output['radius']
         ct, detection = snake_decode.decode_ct_hm_circle(torch.sigmoid(ct_hm), radius)
-        # detection[..., :4] = data_utils.clip_to_image(detection[..., :4], h, w)
+        detection[:, :2] = data_utils.clip_to_image(detection[:, :2], h, w)
         output.update({'ct': ct, 'detection': detection})
         return ct, detection
 

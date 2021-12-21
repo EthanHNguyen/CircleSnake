@@ -11,8 +11,8 @@ class NetworkWrapper(nn.Module):
 
         self.ct_crit = net_utils.FocalLoss()
         self.radius_crit = net_utils.IndL1Loss1d('smooth_l1')
-        self.reg_crit = net_utils.IndL1Loss1d('smooth_l1')
-        self.ex_crit = torch.nn.functional.smooth_l1_loss
+        # self.reg_crit = net_utils.IndL1Loss1d('smooth_l1')
+        # self.ex_crit = torch.nn.functional.smooth_l1_loss
         self.py_crit = torch.nn.functional.smooth_l1_loss
 
     def forward(self, batch):
