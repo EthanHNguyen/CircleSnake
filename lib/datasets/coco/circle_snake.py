@@ -9,8 +9,6 @@ from pycocotools.coco import COCO
 from lib.config import cfg
 import math
 
-debug = False
-
 class Dataset(data.Dataset):
     def __init__(self, ann_file, data_root, split):
         super(Dataset, self).__init__()
@@ -246,9 +244,6 @@ class Dataset(data.Dataset):
         # Makes sure polygons are valid
         instance_polys = self.get_valid_polys(instance_polys, inp_out_hw)
 
-        # Gets the extreme points
-        # extreme_points = self.get_extreme_points(GT_circle_annotations)
-
         # detection
         output_h, output_w = inp_out_hw[2:]
         ct_hm = np.zeros([cfg.heads.ct_hm, output_h, output_w], dtype=np.float32)
@@ -257,12 +252,6 @@ class Dataset(data.Dataset):
         reg = []
         ct_cls = []
         ct_ind = []
-
-        # init
-        i_it_4pys = []
-        c_it_4pys = []
-        i_gt_4pys = []
-        c_gt_4pys = []
 
         # evolution
         i_it_pys = []
@@ -301,7 +290,7 @@ class Dataset(data.Dataset):
         # ret.update(init)
         ret.update(evolution)
 
-        if debug:
+        if cfg.debug_train:
             # Visualize the ground truth of CircleNet
             visualize_utils.visualize_snake_detection_circle(orig_img, ret)
 

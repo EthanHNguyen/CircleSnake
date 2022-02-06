@@ -22,6 +22,11 @@ cfg.gpus = [0]
 
 # if load the pretrained network
 cfg.resume = True
+cfg.pretrain = ""
+
+# debug
+cfg.debug_train = False
+cfg.debug_test = False
 
 
 # -----------------------------------------------------------------------------
@@ -87,6 +92,10 @@ def parse_cfg(cfg, args):
     cfg.model_dir = os.path.join(cfg.model_dir, cfg.task, cfg.model)
     cfg.record_dir = os.path.join(cfg.record_dir, cfg.task, cfg.model)
     cfg.result_dir = os.path.join(cfg.result_dir, cfg.task, cfg.model)
+
+    # Set-up to resume from pre-trained model
+    if cfg.pretrain:
+        cfg.resume = True
 
 
 def make_cfg(args):

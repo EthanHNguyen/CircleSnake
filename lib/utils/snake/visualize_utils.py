@@ -11,8 +11,8 @@ R = 8
 GREEN = (18, 127, 15)
 WHITE = (255, 255, 255)
 
-def visualize_snake_detection_circle(img, data):
-
+def visualize_snake_detection_circle(orig_img, data):
+    img = orig_img.copy()
     # def blend_hm_img(hm, img):
     #     hm = np.max(hm, axis=0)
     #     h, w = hm.shape[:2]
@@ -113,12 +113,17 @@ def visualize_snake_evolution(img, data):
     #     plt.plot(poly[:, 0], poly[:, 1])
     #     plt.scatter(poly[0, 0], poly[0, 1], edgecolors='w')
     # plt.show()
-    for poly in data['i_gt_py']:
+    for poly in data['i_it_py']:
         poly = poly * 4
         poly = np.append(poly, [poly[0]], axis=0)
         cv2.polylines(img, [np.int32(poly)], True, (0, 255, 0), 1)
+
+    for poly in data['i_gt_py']:
+        poly = poly * 4
+        poly = np.append(poly, [poly[0]], axis=0)
+        cv2.polylines(img, [np.int32(poly)], True, (0, 0, 255), 1)
     cv2.imshow("Ground Truth - Evolution", img)
-    cv2.imwrite("/home/sybbure/Documents/CircleSnake/data/debug/gt_evolution.png", img)
+    # cv2.imwrite("/home/sybbure/Documents/CircleSnake/data/debug/gt_evolution.png", img)
     cv2.waitKey(0)
 
 

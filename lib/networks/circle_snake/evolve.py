@@ -44,8 +44,8 @@ class Evolution(nn.Module):
 
     def prepare_testing_evolve(self, output, h, w):
         detection = output['detection']
-        detection[..., 0] = torch.clamp(detection[..., 0], min=0, max=w-1)
-        detection[..., 1] = torch.clamp(detection[..., 1], min=0, max=h-1)
+        # detection[..., 0] = torch.clamp(detection[..., 0], min=0, max=w-1)
+        # detection[..., 1] = torch.clamp(detection[..., 1], min=0, max=h-1)
         evolve = snake_gcn_utils.prepare_testing_evolve_circle(detection)
         output.update({'it_py': evolve['i_it_py']})
         return evolve
@@ -88,12 +88,8 @@ class Evolution(nn.Module):
                 # Collect the ground truths for evolution
                 init = self.prepare_training(output, batch)
 
-            # No need for extreme point detection
-            # ex_pred = self.init_poly(self.init_gcn, cnn_feature, init['i_it_4py'], init['c_it_4py'], init['4py_ind'])
-            # ret.update({'ex_pred': ex_pred, 'i_gt_4py': output['i_gt_4py']})
-
             with torch.no_grad():
-                # Get octagon and propose initial points
+                # Initialize contour from circle
                 init = self.prepare_training_evolve(output, batch, init)
 
             py_pred = self.evolve_poly(self.evolve_gcn, cnn_feature, init['i_it_py'], init['c_it_py'], init['py_ind'])
@@ -111,8 +107,6 @@ class Evolution(nn.Module):
             with torch.no_grad():
                 # Threshold confidence scores
                 init = self.prepare_testing_init(output)
-                # ex = self.init_poly(self.init_gcn, cnn_feature, init['i_it_4py'], init['c_it_4py'], init['ind'])
-                # ret.update({'ex': ex})
 
                 evolve = self.prepare_testing_evolve(output, cnn_feature.size(2), cnn_feature.size(3))
                 py = self.evolve_poly(self.evolve_gcn, cnn_feature, evolve['i_it_py'], evolve['c_it_py'], init['ind'])

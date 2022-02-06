@@ -401,6 +401,12 @@ def clip_to_image(bbox, h, w):
     bbox[..., 3] = torch.clamp(bbox[..., 3], max=h-1)
     return bbox
 
+def circle_clip_to_image(circle, h, w):
+    circle[..., :2] = torch.clamp(circle[..., :2], min=0)
+    circle[..., 0] = torch.clamp(circle[..., 0], max=w-1)
+    circle[..., 1] = torch.clamp(circle[..., 1], max=h-1)
+    return circle
+
 
 def get_area(bbox):
     area = (bbox[..., 2] - bbox[..., 0] + 1) * (bbox[..., 3] - bbox[..., 1] + 1)
@@ -419,4 +425,9 @@ def box_iou(box1, box2):
 
     iou = inter / (area1[:, None] + area2 - inter)
     return iou
+
+
+def sigmoid(x):
+    y = torch.clamp(x.sigmoid_(), min=1e-4, max=1 - 1e-4)
+    return y
 

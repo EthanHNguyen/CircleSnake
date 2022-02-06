@@ -3,6 +3,24 @@ from lib.config import cfg
 
 class DatasetCatalog(object):
     dataset_attrs = {
+        'monusegTrain': {
+            'id': 'coco',
+            'data_root': 'data/monuseg/train',
+            'ann_file': 'data/monuseg/MoNuSeg_train2021.json',
+            'split': 'train'
+        },
+        'monusegVal': {
+            'id': 'coco',
+            'data_root': 'data/monuseg/val',
+            'ann_file': 'data/monuseg/MoNuSeg_val2021.json',
+            'split': 'test'
+        },
+        'monusegTest': {
+            'id': 'coco_test',
+            'data_root': 'data/monuseg/test',
+            'ann_file': 'data/monuseg/MoNuSeg_test2021.json',
+            'split': 'test'
+        },
         'CocoTrain': {
             'id': 'coco',
             'data_root': 'data/monuseg/train',

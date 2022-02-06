@@ -17,20 +17,20 @@ def circle_snake_collator(batch):
     batch_size = len(batch)
     ct_num = torch.max(meta['ct_num'])
     radius = torch.zeros([batch_size, ct_num, 1], dtype=torch.float)
-    # reg = torch.zeros([batch_size, ct_num, 2], dtype=torch.float)
+    reg = torch.zeros([batch_size, ct_num, 2], dtype=torch.float)
     ct_cls = torch.zeros([batch_size, ct_num], dtype=torch.int64)
     ct_ind = torch.zeros([batch_size, ct_num], dtype=torch.int64)
-    ct_01 = torch.zeros([batch_size, ct_num], dtype=torch.uint8)
+    ct_01 = torch.zeros([batch_size, ct_num], dtype=torch.bool)
     for i in range(batch_size):
         ct_01[i, :meta['ct_num'][i]] = 1
 
     if ct_num != 0:
         radius[ct_01] = torch.Tensor(sum([b['radius'] for b in batch], []))
-        # reg[ct_01] = torch.Tensor(sum([b['reg'] for b in batch], []))
+        reg[ct_01] = torch.Tensor(sum([b['reg'] for b in batch], []))
         ct_cls[ct_01] = torch.LongTensor(sum([b['ct_cls'] for b in batch], []))
         ct_ind[ct_01] = torch.LongTensor(sum([b['ct_ind'] for b in batch], []))
 
-    detection = {'ct_hm': ct_hm, 'radius': radius, 'ct_cls': ct_cls, 'ct_ind': ct_ind, 'ct_01': ct_01.float()}
+    detection = {'ct_hm': ct_hm, 'radius': radius, 'reg' : reg, 'ct_cls': ct_cls, 'ct_ind': ct_ind, 'ct_01': ct_01.float()}
     # detection = {'ct_hm': ct_hm, 'radius': radius, 'reg': reg, 'ct_cls': ct_cls, 'ct_ind': ct_ind, 'ct_01': ct_01.float()}
     ret.update(detection)
 
@@ -55,10 +55,10 @@ def circle_snake_collator(batch):
     i_gt_pys = torch.zeros([batch_size, ct_num, snake_config.gt_poly_num, 2], dtype=torch.float)
     c_gt_pys = torch.zeros([batch_size, ct_num, snake_config.gt_poly_num, 2], dtype=torch.float)
     if ct_num != 0:
-        i_it_pys[ct_01] = torch.Tensor(sum([b['i_it_py'] for b in batch], []))
-        c_it_pys[ct_01] = torch.Tensor(sum([b['c_it_py'] for b in batch], []))
-        i_gt_pys[ct_01] = torch.Tensor(sum([b['i_gt_py'] for b in batch], []))
-        c_gt_pys[ct_01] = torch.Tensor(sum([b['c_gt_py'] for b in batch], []))
+        i_it_pys[ct_01] = torch.Tensor(np.array(sum([b['i_it_py'] for b in batch], [])))
+        c_it_pys[ct_01] = torch.Tensor(np.array(sum([b['c_it_py'] for b in batch], [])))
+        i_gt_pys[ct_01] = torch.Tensor(np.array(sum([b['i_gt_py'] for b in batch], [])))
+        c_gt_pys[ct_01] = torch.Tensor(np.array(sum([b['c_gt_py'] for b in batch], [])))
     evolution = {'i_it_py': i_it_pys, 'c_it_py': c_it_pys, 'i_gt_py': i_gt_pys, 'c_gt_py': c_gt_pys}
     ret.update(evolution)
 
@@ -167,7 +167,7 @@ def rcnn_snake_collator(batch):
     act_num = torch.max(meta['act_num'])
     awh = torch.zeros([batch_size, act_num, 2], dtype=torch.float)
     act_ind = torch.zeros([batch_size, act_num], dtype=torch.int64)
-    act_01 = torch.zeros([batch_size, act_num], dtype=torch.uint8)
+    act_01 = torch.zeros([batch_size, act_num], dtype=torch.bool)
     for i in range(batch_size):
         act_01[i, :meta['act_num'][i]] = 1
 
@@ -181,7 +181,7 @@ def rcnn_snake_collator(batch):
     from lib.utils.rcnn_snake import rcnn_snake_config as snake_config
 
     ct_num = torch.max(meta['ct_num'])
-    ct_01 = torch.zeros([batch_size, ct_num], dtype=torch.uint8)
+    ct_01 = torch.zeros([batch_size, ct_num], dtype=torch.bool)
     for i in range(batch_size):
         ct_01[i, :meta['ct_num'][i]] = 1
     ret.update({'ct_01': ct_01.float()})
@@ -193,7 +193,7 @@ def rcnn_snake_collator(batch):
     cp_num = max(cp_num_list)
     cp_wh = torch.zeros([len(cp_hm), cp_num, 2], dtype=torch.float)
     cp_ind = torch.zeros([len(cp_hm), cp_num], dtype=torch.int64)
-    cp_01 = torch.zeros([len(cp_hm), cp_num], dtype=torch.uint8)
+    cp_01 = torch.zeros([len(cp_hm), cp_num], dtype=torch.bool)
     for i in range(len(cp_hm)):
         cp_01[i, :cp_num_list[i]] = 1
 
@@ -204,7 +204,7 @@ def rcnn_snake_collator(batch):
     cp_hm_ = torch.zeros([batch_size, act_num, 1, snake_config.cp_h, snake_config.cp_w], dtype=torch.float)
     cp_wh_ = torch.zeros([batch_size, act_num, cp_num, 2], dtype=torch.float)
     cp_ind_ = torch.zeros([batch_size, act_num, cp_num], dtype=torch.int64)
-    cp_01_ = torch.zeros([batch_size, act_num, cp_num], dtype=torch.uint8)
+    cp_01_ = torch.zeros([batch_size, act_num, cp_num], dtype=torch.bool)
 
     cp_hm_[act_01] = cp_hm
     cp_wh_[act_01] = cp_wh

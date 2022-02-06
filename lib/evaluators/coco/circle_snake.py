@@ -35,6 +35,7 @@ class Evaluator:
         self.contiguous_category_id_to_json_id = {
             v: k for k, v in self.json_category_id_to_contiguous_id.items()
         }
+        self.iter_num = 0
 
     def evaluate(self, output, batch):
         detection = output['detection']
@@ -56,7 +57,7 @@ class Evaluator:
         py = [data_utils.affine_transform(py_, trans_output_inv) for py_ in py]
         rles = snake_eval_utils.coco_poly_to_rle(py, ori_h, ori_w)
 
-        if debug:
+        if cfg.debug_test:
             path = os.path.join(self.data_root, img["file_name"])
             orig_img = cv2.imread(path)
 
@@ -75,7 +76,7 @@ class Evaluator:
                     poly_corrected[i] = int(round(poly_x)), int(round(poly_y))
                 cv2.polylines(orig_img, [np.int32(poly_corrected)], True, (0, 255, 0), 1)
             cv2.imshow("Prediction", orig_img)
-            cv2.imwrite("/home/sybbure/Documents/CircleSnake/data/debug/pred_contour.png", orig_img)
+            # cv2.imwrite("/home/sybbure/Documents/CircleSnake/data/debug/pred_contour.png", orig_img)
             cv2.waitKey(0)
 
         coco_dets = []
@@ -95,6 +96,7 @@ class Evaluator:
         json.dump(self.results, open(os.path.join(self.result_dir, 'results.json'), 'w'))
         coco_dets = self.coco.loadRes(os.path.join(self.result_dir, 'results.json'))
         coco_eval = COCOeval(self.coco, coco_dets, 'segm')
+        coco_eval.params.maxDets = [1000, 1000, 1000]
         coco_eval.params.imgIds = self.img_ids
         coco_eval.evaluate()
         coco_eval.accumulate()
@@ -127,6 +129,7 @@ class DetectionEvaluator:
         self.contiguous_category_id_to_json_id = {
             v: k for k, v in self.json_category_id_to_contiguous_id.items()
         }
+        self.iter_num = 0
 
     def evaluate(self, output, batch):
         detection = output['detection']
@@ -147,17 +150,22 @@ class DetectionEvaluator:
         img = self.circle.loadImgs(img_id)[0]
         ori_h, ori_w = img['height'], img['width']
 
-        # path = os.path.join(self.data_root, img["file_name"])
-        # orig_img = cv2.imread(path)
 
-        # if debug:
-        #     for i in range(len(label)):
-        #         circle_ = data_utils.affine_transform(circle[i][:2].reshape(-1, 2), trans_output_inv).ravel()
-        #         cv2.circle(orig_img, (int(circle_[0]), int(circle_[1])), int(circle[i][2]), (0, 255, 0), 1)
-        #         # cv2.circle(orig_img, (int(circle[i][0]), int(circle[i][1])), int(circle[i][2]), (0, 255, 0), 1)
-        #     cv2.imshow("Prediction", orig_img)
-        #     cv2.imwrite("/home/sybbure/Documents/CircleSnake/data/debug/pred_detection.png", orig_img)
-        #     cv2.waitKey(0)
+        if cfg.debug_test:
+            # Read the image
+            path = os.path.join(self.data_root, img["file_name"])
+            pred_img = cv2.imread(path)
+
+            # Overlay the prediction in green
+            for i in range(len(label)):
+                circle_ = data_utils.affine_transform(circle[i][:2].reshape(-1, 2), trans_output_inv).ravel()
+                cv2.circle(pred_img, (int(circle_[0]), int(circle_[1])), int(circle[i][2]), (0, 255, 0), 2)
+
+            # Show the image
+            cv2.imshow("Prediction", pred_img)
+            # cv2.imwrite(os.path.join("/home/ethan/Documents/CircleSnake/data/debug", str(self.iter_num) + ".png"), pred_img)
+            self.iter_num += 1
+            cv2.waitKey(0)
 
         circle_dets = []
         for i in range(len(label)):
@@ -220,6 +228,7 @@ class DetectionEvaluator:
         circle_dets = self.circle.loadRes(os.path.join(self.result_dir, 'results.json'))
         circle_eval = CIRCLEeval(self.circle, circle_dets, 'circle')
         circle_eval.params.imgIds = self.img_ids
+        circle_eval.params.maxDets = [1000, 1000, 1000]
         circle_eval.evaluate()
         circle_eval.accumulate()
         circle_eval.summarize()

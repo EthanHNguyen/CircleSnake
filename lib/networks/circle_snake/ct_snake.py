@@ -22,8 +22,10 @@ class Network(nn.Module):
     def decode_detection(self, output, h, w):
         ct_hm = output['ct_hm']
         radius = output['radius']
-        ct, detection = snake_decode.decode_ct_hm_circle(torch.sigmoid(ct_hm), radius)
-        detection[:, :2] = data_utils.clip_to_image(detection[:, :2], h, w)
+        reg = output['reg']
+
+        ct, detection = snake_decode.decode_ct_hm_circle(ct_hm, radius, reg)
+        detection[:, :2] = data_utils.circle_clip_to_image(detection[:, :2], h, w)
         output.update({'ct': ct, 'detection': detection})
         return ct, detection
 
@@ -37,13 +39,9 @@ class Network(nn.Module):
         ct = torch.cat([xs, ys], dim=1)
 
         radius = batch['radius'][ct_01]
-        # bboxes = torch.cat([xs - wh[..., 0:1] / 2,
-        #                     ys - wh[..., 1:2] / 2,
-        #                     xs + wh[..., 0:1] / 2,
-        #                     ys + wh[..., 1:2] / 2], dim=1)
         score = torch.ones([len(radius)]).to(radius)[:, None]
         ct_cls = batch['ct_cls'][ct_01].float()[:, None]
-        detection = torch.cat([radius, score, ct_cls], dim=1)
+        detection = torch.cat([xs, ys, radius, score, ct_cls], dim=1)
 
         output['ct'] = ct[None]
         output['detection'] = detection[None]
@@ -52,6 +50,8 @@ class Network(nn.Module):
 
     def forward(self, x, batch=None):
         output, cnn_feature = self.dla(x)
+        output['ct_hm'] = data_utils.sigmoid(output['ct_hm'])
+
         with torch.no_grad():
             ct, detection = self.decode_detection(output, cnn_feature.size(2), cnn_feature.size(3))
         if cfg.use_gt_det:

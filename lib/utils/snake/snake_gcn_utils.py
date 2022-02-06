@@ -10,7 +10,6 @@ def collect_training(poly, ct_01):
     poly = torch.cat([poly[i][ct_01[i]] for i in range(batch_size)], dim=0)
     return poly
 
-# TODO - Change to accept bounding circle
 def prepare_training_init(ret, batch):
     ct_01 = batch['ct_01'].byte()
     init = {}
@@ -131,7 +130,7 @@ def prepare_training(ret, batch):
 
 # Only the initial circular contour is required
 def prepare_training_circle(ret, batch):
-    ct_01 = batch['ct_01'].byte()
+    ct_01 = batch['ct_01'].bool()
     init = {}
     # init.update({'i_it_4py': collect_training(batch['i_it_4py'], ct_01)})
     # init.update({'c_it_4py': collect_training(batch['c_it_4py'], ct_01)})
@@ -230,7 +229,7 @@ def get_gcn_feature(cnn_feature, img_poly, ind, h, w):
     gcn_feature = torch.zeros([img_poly.size(0), cnn_feature.size(1), img_poly.size(1)]).to(img_poly.device)
     for i in range(batch_size):
         poly = img_poly[ind == i].unsqueeze(0)
-        feature = torch.nn.functional.grid_sample(cnn_feature[i:i+1], poly)[0].permute(1, 0, 2)
+        feature = torch.nn.functional.grid_sample(cnn_feature[i:i+1], poly, align_corners=True)[0].permute(1, 0, 2)
         gcn_feature[ind == i] = feature
 
     return gcn_feature

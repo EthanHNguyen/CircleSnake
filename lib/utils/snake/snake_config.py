@@ -36,7 +36,7 @@ adj_num = 4
 
 train_pred_box = False
 box_iou = 0.7
-confidence = 0.1
+confidence = 0
 train_pred_box_only = True
 
 train_pred_ex = False

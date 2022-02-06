@@ -263,32 +263,56 @@ class GeoCrossEntropyLoss(nn.Module):
         return loss
 
 
-def load_model(net, optim, scheduler, recorder, model_dir, resume=True, epoch=-1):
+def load_model(net, optim, scheduler, recorder, model_dir, resume=True, epoch=-1, pretrain=''):
     if not resume:
         os.system('rm -rf {}'.format(model_dir))
         return 0
 
-    print(model_dir)
+    # Load pretrained model
+    if pretrain:
+        model_dir = os.path.join("data", "pretrain", pretrain) + ".pth"
 
-    if not os.path.exists(model_dir):
-        print(colored('WARNING: NO MODEL LOADED !!!', 'red'))
-        return 0
+        if not os.path.exists(model_dir):
+            print(colored('WARNING: NO MODEL LOADED !!!', 'red'))
+            return 0
 
-    pths = [int(pth.split('.')[0]) for pth in os.listdir(model_dir)]
-    if len(pths) == 0:
-        print(colored('WARNING: NO MODEL LOADED !!!', 'red'))
-        return 0
-    if epoch == -1:
-        pth = max(pths)
+        print('load model: {}'.format(model_dir))
+        pretrained_model = torch.load(model_dir)
+
+        try:
+            net.load_state_dict(pretrained_model['state_dict'], strict=False)
+        except RuntimeError as e:
+            print(str(e))
+            # net.load_state_dict(pretrained_model['state_dict'], strict=False)
+
+        return 1
+
+    # Resume from highest epoch model
     else:
-        pth = epoch
-    print('load model: {}'.format(os.path.join(model_dir, '{}.pth'.format(pth))))
-    pretrained_model = torch.load(os.path.join(model_dir, '{}.pth'.format(pth)))
-    net.load_state_dict(pretrained_model['net'])
-    optim.load_state_dict(pretrained_model['optim'])
-    scheduler.load_state_dict(pretrained_model['scheduler'])
-    recorder.load_state_dict(pretrained_model['recorder'])
-    return pretrained_model['epoch'] + 1
+        print(model_dir)
+
+        if not os.path.exists(model_dir):
+            print(colored('WARNING: NO MODEL LOADED !!!', 'red'))
+            return 0
+
+        pths = [int(pth.split('.')[0]) for pth in os.listdir(model_dir)]
+        if len(pths) == 0:
+            print(colored('WARNING: NO MODEL LOADED !!!', 'red'))
+            return 0
+        if epoch == -1:
+            pth = max(pths)
+        else:
+            pth = epoch
+
+        print('load model: {}'.format(os.path.join(model_dir, '{}.pth'.format(pth))))
+        pretrained_model = torch.load(os.path.join(model_dir, '{}.pth'.format(pth)))
+
+        net.load_state_dict(pretrained_model['net'])
+        optim.load_state_dict(pretrained_model['optim'])
+        scheduler.load_state_dict(pretrained_model['scheduler'])
+        recorder.load_state_dict(pretrained_model['recorder'])
+
+        return pretrained_model['epoch'] + 1
 
 
 def save_model(net, optim, scheduler, recorder, epoch, model_dir):
@@ -328,7 +352,11 @@ def load_network(net, model_dir, resume=True, epoch=-1, strict=True):
         pth = epoch
     print('load model: {}'.format(os.path.join(model_dir, '{}.pth'.format(pth))))
     pretrained_model = torch.load(os.path.join(model_dir, '{}.pth'.format(pth)))
-    net.load_state_dict(pretrained_model['net'], strict=strict)
+    # net.load_state_dict(pretrained_model['net'], strict=strict)
+    try:
+        net.load_state_dict(pretrained_model['state_dict'], strict=False)
+    except:
+        net.load_state_dict(pretrained_model['net'], strict=False)
     return pretrained_model['epoch'] + 1
 
 
