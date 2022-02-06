@@ -75,6 +75,7 @@ class Evaluator:
         json.dump(self.results, open(os.path.join(self.result_dir, 'results.json'), 'w'))
         coco_dets = self.coco.loadRes(os.path.join(self.result_dir, 'results.json'))
         coco_eval = COCOeval(self.coco, coco_dets, 'segm')
+        coco_eval.params.maxDets = [1000, 1000, 1000]
         coco_eval.params.imgIds = self.img_ids
         coco_eval.evaluate()
         coco_eval.accumulate()
@@ -145,6 +146,7 @@ class DetectionEvaluator:
         json.dump(self.results, open(os.path.join(self.result_dir, 'results.json'), 'w'))
         coco_dets = self.coco.loadRes(os.path.join(self.result_dir, 'results.json'))
         coco_eval = COCOeval(self.coco, coco_dets, 'bbox')
+        coco_eval.params.maxDets = [1000, 1000, 1000]
         coco_eval.params.imgIds = self.img_ids
         coco_eval.evaluate()
         coco_eval.accumulate()
