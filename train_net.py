@@ -12,7 +12,15 @@ def train(cfg, network):
     optimizer = make_optimizer(cfg, network)
     scheduler = make_lr_scheduler(cfg, optimizer)
     recorder = make_recorder(cfg)
-    evaluator = make_evaluator(cfg)
+
+    if cfg.segm_or_bbox == 'both':
+        cfg.segm_or_bbox = 'segm'
+        segm_evaluator = make_evaluator(cfg)
+        cfg.segm_or_bbox = 'bbox'
+        det_evaluator = make_evaluator(cfg)
+        cfg.segm_or_bbox = 'both'
+    else:
+        evaluator = make_evaluator(cfg)
 
     begin_epoch = load_model(network, optimizer, scheduler, recorder, cfg.model_dir, resume=cfg.resume,
                              pretrain=cfg.pretrain)
@@ -30,7 +38,11 @@ def train(cfg, network):
             save_model(network, optimizer, scheduler, recorder, epoch, cfg.model_dir)
 
         if (epoch + 1) % cfg.eval_ep == 0:
-            trainer.val(epoch, val_loader, evaluator, recorder)
+            if cfg.segm_or_bbox == 'both':
+                trainer.val(epoch, val_loader, det_evaluator, recorder)
+                trainer.val(epoch, val_loader, segm_evaluator, recorder)
+            else:
+                trainer.val(epoch, val_loader, evaluator, recorder)
 
     return network
 

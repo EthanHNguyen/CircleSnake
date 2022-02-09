@@ -11,8 +11,8 @@ class DatasetCatalog(object):
         },
         'monusegVal': {
             'id': 'coco',
-            'data_root': 'data/monuseg/val',
-            'ann_file': 'data/monuseg/MoNuSeg_val2021.json',
+            'data_root': 'data/monuseg/test',
+            'ann_file': 'data/monuseg/MoNuSeg_test2021.json',
             'split': 'test'
         },
         'monusegTest': {

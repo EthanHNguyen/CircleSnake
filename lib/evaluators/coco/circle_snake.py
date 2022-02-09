@@ -104,7 +104,7 @@ class Evaluator:
         self.results = []
         self.img_ids = []
         self.aps.append(coco_eval.stats[0])
-        return {'ap': coco_eval.stats[0]}
+        return {'segm_ap': coco_eval.stats[0]}
 
 
 class DetectionEvaluator:
@@ -235,7 +235,7 @@ class DetectionEvaluator:
         self.results = []
         self.img_ids = []
         self.aps.append(circle_eval.stats[0])
-        return {'ap': circle_eval.stats[0]}
+        return {'det_ap': circle_eval.stats[0]}
 
 
 Evaluator = Evaluator if cfg.segm_or_bbox == 'segm' else DetectionEvaluator
