@@ -13,8 +13,6 @@ from lib.config import cfg
 from lib.datasets.dataset_catalog import DatasetCatalog
 from lib.utils import data_utils
 
-debug = False
-
 class Evaluator:
     def __init__(self, result_dir):
         self.results = []
@@ -61,8 +59,12 @@ class Evaluator:
             path = os.path.join(self.data_root, img["file_name"])
             orig_img = cv2.imread(path)
 
+            # Prediction
+            pred_img = orig_img.copy()
             for polys in py:
                 poly_corrected = np.zeros(shape=(128, 2), dtype=np.int32)
+
+                # Limit to border
                 for i, (poly_x, poly_y) in enumerate(polys):
                     if poly_x < 0:
                         poly_x = 0
@@ -72,12 +74,22 @@ class Evaluator:
                         poly_y = 0
                     elif poly_y > ori_h:
                         poly_y = ori_h
-
                     poly_corrected[i] = int(round(poly_x)), int(round(poly_y))
-                cv2.polylines(orig_img, [np.int32(poly_corrected)], True, (0, 255, 0), 1)
-            cv2.imshow("Prediction", orig_img)
-            # cv2.imwrite("/home/sybbure/Documents/CircleSnake/data/debug/pred_contour.png", orig_img)
-            cv2.waitKey(0)
+                cv2.polylines(pred_img, [np.int32(poly_corrected)], True, (0, 255, 0), 2)
+            # cv2.imshow("Prediction", orig_img)
+            cv2.imwrite(os.path.join("/home/ethan/Documents/CircleSnake/data/debug", str(self.iter_num) + "_segm_pred.png"), pred_img)
+
+            # Ground truth
+            gt_img = orig_img.copy()
+            ann_ids = self.coco.getAnnIds(img_id)
+            anns = self.coco.loadAnns(ann_ids)
+            for ann in anns:
+                instance_poly = [np.array(poly, dtype=int).reshape(-1, 2) for poly in ann['segmentation']]
+                cv2.polylines(gt_img, instance_poly, True, (0, 255, 0), 2)
+            # cv2.imshow("GT", gt_img)
+            cv2.imwrite(os.path.join("/home/ethan/Documents/CircleSnake/data/debug", str(self.iter_num) + "_segm_truth.png"), gt_img)
+            self.iter_num += 1
+            # cv2.waitKey(0)
 
         coco_dets = []
         for i in range(len(rles)):
@@ -155,17 +167,31 @@ class DetectionEvaluator:
             # Read the image
             path = os.path.join(self.data_root, img["file_name"])
             pred_img = cv2.imread(path)
+            gt_img = pred_img.copy()
 
             # Overlay the prediction in green
             for i in range(len(label)):
                 circle_ = data_utils.affine_transform(circle[i][:2].reshape(-1, 2), trans_output_inv).ravel()
-                cv2.circle(pred_img, (int(circle_[0]), int(circle_[1])), int(circle[i][2]), (0, 255, 0), 2)
+                cv2.circle(pred_img, (int(circle_[0]), int(circle_[1])), int(circle[i][2] * trans_output_inv[0][0]), (0, 255, 0), 2)
 
             # Show the image
-            cv2.imshow("Prediction", pred_img)
-            # cv2.imwrite(os.path.join("/home/ethan/Documents/CircleSnake/data/debug", str(self.iter_num) + ".png"), pred_img)
+            # cv2.imshow("Prediction", pred_img)
+            cv2.imwrite(os.path.join("/home/ethan/Documents/CircleSnake/data/debug", str(self.iter_num) + "_det_pred.png"), pred_img)
+
+            # Ground truth
+            ann_ids = self.circle.getAnnIds(img_id)
+            anns = self.circle.loadAnns(ann_ids)
+            for ann in anns:
+                cv2.circle(pred_img, (round(ann["circle_center"][0]), round(ann["circle_center"][1]))
+                           , round(ann["circle_radius"]), (0, 255, 0), 2)
+            # cv2.imshow("GT", gt_img)
+            cv2.imwrite(
+                os.path.join("/home/ethan/Documents/CircleSnake/data/debug", str(self.iter_num) + "_det_truth.png"),
+                gt_img)
+            # self.iter_num += 1
+
             self.iter_num += 1
-            cv2.waitKey(0)
+            # cv2.waitKey(0)
 
         circle_dets = []
         for i in range(len(label)):
