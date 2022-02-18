@@ -12,6 +12,7 @@ from lib.utils.circle.circle_eval import CIRCLEeval
 from lib.config import cfg
 from lib.datasets.dataset_catalog import DatasetCatalog
 from lib.utils import data_utils
+from PIL import Image
 
 debug = False
 
@@ -78,6 +79,18 @@ class Evaluator:
             cv2.imshow("Prediction", orig_img)
             # cv2.imwrite("/home/sybbure/Documents/CircleSnake/data/debug/pred_contour.png", orig_img)
             cv2.waitKey(0)
+
+        if cfg.dice:
+            mask = np.zeros(orig_img.shape, dtype=np.uint8)
+            for polys in py:
+                cv2.drawContours(mask, [polys.astype(int)], -1, (255, 255, 255), -1)
+
+            mask_out = Image.fromarray(mask)
+
+            if not os.path.exists(os.path.join(self.result_dir, 'masks')):
+                os.makedirs()
+
+            mask_out.save(os.path.join(self.result_dir, 'masks', str(self.iter_num) + '.png'))
 
         coco_dets = []
         for i in range(len(rles)):
