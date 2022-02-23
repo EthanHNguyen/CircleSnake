@@ -36,6 +36,8 @@ class Evaluator:
         }
         self.iter_num = 0
 
+        self.dice = 0
+        self.num_images = 0
     def evaluate(self, output, batch):
         detection = output['detection']
         score = detection[:, 3].detach().cpu().numpy()
@@ -56,10 +58,10 @@ class Evaluator:
         py = [data_utils.affine_transform(py_, trans_output_inv) for py_ in py]
         rles = snake_eval_utils.coco_poly_to_rle(py, ori_h, ori_w)
 
-        if cfg.debug_test:
-            path = os.path.join(self.data_root, img["file_name"])
-            orig_img = cv2.imread(path)
+        path = os.path.join(self.data_root, img["file_name"])
+        orig_img = cv2.imread(path)
 
+        if cfg.debug_test:
             # Prediction
             pred_img = orig_img.copy()
             for polys in py:
@@ -76,8 +78,8 @@ class Evaluator:
                     elif poly_y > ori_h:
                         poly_y = ori_h
                     poly_corrected[i] = int(round(poly_x)), int(round(poly_y))
-                cv2.polylines(pred_img, [np.int32(poly_corrected)], True, (0, 255, 0), 2)
-            # cv2.imshow("Prediction", orig_img)
+                cv2.polylines(pred_img, [poly_corrected], True, (0, 255, 0), 2)
+            cv2.imshow("Prediction", pred_img)
             cv2.imwrite(os.path.join("/home/ethan/Documents/CircleSnake/data/debug", str(self.iter_num) + "_segm_pred.png"), pred_img)
 
             # Ground truth
@@ -87,24 +89,47 @@ class Evaluator:
             for ann in anns:
                 instance_poly = [np.array(poly, dtype=int).reshape(-1, 2) for poly in ann['segmentation']]
                 cv2.polylines(gt_img, instance_poly, True, (0, 255, 0), 2)
-            # cv2.imshow("GT", gt_img)
+            cv2.imshow("GT", gt_img)
             cv2.imwrite(os.path.join("/home/ethan/Documents/CircleSnake/data/debug", str(self.iter_num) + "_segm_truth.png"), gt_img)
-            # cv2.waitKey(0)
-
-        if cfg.dice:
-            mask = np.zeros(orig_img.shape, dtype=np.uint8)
-            for polys in py:
-                cv2.drawContours(mask, [polys.astype(int)], -1, (255, 255, 255), -1)
-
-            cv2.imshow("Mask", mask)
             cv2.waitKey(0)
 
-            mask_out = Image.fromarray(mask)
+        if cfg.dice:
+            # Prediction mask
+            pred_mask = np.zeros(orig_img.shape, dtype=np.uint8)
 
-            if not os.path.exists(os.path.join(self.result_dir, 'masks')):
-                os.makedirs(os.path.join(self.result_dir, 'masks'))
+            for polys in py:
+                cv2.drawContours(pred_mask, [polys.astype(int)], -1, (255, 255, 255), -1)
 
-            mask_out.save(os.path.join(self.result_dir, 'masks', str(self.iter_num) + '.png'))
+            # cv2.imshow("Pred Mask", pred_mask)
+
+            # GT Mask
+            gt_mask = np.zeros(orig_img.shape, dtype=np.uint8)
+
+            ann_ids = self.coco.getAnnIds(img_id)
+            anns = self.coco.loadAnns(ann_ids)
+            for ann in anns:
+                instance_poly = [np.array(poly, dtype=int).reshape(-1, 2) for poly in ann['segmentation']]
+                cv2.drawContours(gt_mask, instance_poly, -1, (255, 255, 255), -1)
+
+            # cv2.imshow("Truth Mask", gt_mask)
+
+
+            gt_mask = gt_mask.astype(np.bool)
+            pred_mask = pred_mask.astype(np.bool)
+
+            intersection = np.logical_and(gt_mask, pred_mask)
+            dice_score = 2 * intersection.sum() / (gt_mask.sum() + pred_mask.sum())
+            self.dice += dice_score
+            self.num_images +=  1
+
+            # cv2.waitKey(0)
+
+            # mask_out = Image.fromarray(mask)
+            #
+            # if not os.path.exists(os.path.join(self.result_dir, 'masks')):
+            #     os.makedirs(os.path.join(self.result_dir, 'masks'))
+            #
+            # mask_out.save(os.path.join(self.result_dir, 'masks', str(self.iter_num) + '.png'))
 
         self.iter_num += 1
 
@@ -133,6 +158,8 @@ class Evaluator:
         self.results = []
         self.img_ids = []
         self.aps.append(coco_eval.stats[0])
+        self.dice /= self.num_images
+        print("Dice Score:", self.dice)
         return {'segm_ap': coco_eval.stats[0]}
 
 
