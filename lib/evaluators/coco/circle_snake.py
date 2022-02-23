@@ -89,7 +89,6 @@ class Evaluator:
                 cv2.polylines(gt_img, instance_poly, True, (0, 255, 0), 2)
             # cv2.imshow("GT", gt_img)
             cv2.imwrite(os.path.join("/home/ethan/Documents/CircleSnake/data/debug", str(self.iter_num) + "_segm_truth.png"), gt_img)
-            self.iter_num += 1
             # cv2.waitKey(0)
 
         if cfg.dice:
@@ -97,12 +96,17 @@ class Evaluator:
             for polys in py:
                 cv2.drawContours(mask, [polys.astype(int)], -1, (255, 255, 255), -1)
 
+            cv2.imshow("Mask", mask)
+            cv2.waitKey(0)
+
             mask_out = Image.fromarray(mask)
 
             if not os.path.exists(os.path.join(self.result_dir, 'masks')):
-                os.makedirs()
+                os.makedirs(os.path.join(self.result_dir, 'masks'))
 
             mask_out.save(os.path.join(self.result_dir, 'masks', str(self.iter_num) + '.png'))
+
+        self.iter_num += 1
 
         coco_dets = []
         for i in range(len(rles)):
