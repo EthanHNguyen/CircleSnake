@@ -28,6 +28,9 @@ cfg.pretrain = ""
 cfg.debug_train = False
 cfg.debug_test = False
 
+# cfg
+cfg.dice = False
+
 
 # -----------------------------------------------------------------------------
 # train
