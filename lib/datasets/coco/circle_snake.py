@@ -95,21 +95,6 @@ class Dataset(data.Dataset):
                 polys = snake_coco_utils.transform_polys(polys, trans_output, output_h, output_w)
                 instance_polys_.append(polys)
 
-        # instance_polys_ = []
-        # for instance in instance_polys:
-        #     polys = [poly.reshape(-1, 2) for poly in instance]
-        #
-        #     # Flip
-        #     if flipped:
-        #         polys_ = []
-        #         for poly in polys:
-        #             poly[:, 0] = width - np.array(poly[:, 0]) - 1
-        #             polys_.append(poly.copy())
-        #         polys = polys_
-        #
-        #     # Transform
-        #     polys = snake_coco_utils.transform_polys(polys, trans_output, output_h, output_w)
-        #     instance_polys_.append(polys)
         return gt_circles_, instance_polys_
 
     def get_valid_polys(self, instance_polys, inp_out_hw):
@@ -119,9 +104,9 @@ class Dataset(data.Dataset):
             instance = [poly for poly in instance if len(poly) >= 4]
             for poly in instance:
                 # Clip x-coordinates to output's width
-                poly[:, 0] = np.clip(poly[:, 0], 0, output_w - 1)
+                poly[:, 0] = np.clip(poly[:, 0], 0, output_w)
                 # Clip y-cordinates with output height
-                poly[:, 1] = np.clip(poly[:, 1], 0, output_h - 1)
+                poly[:, 1] = np.clip(poly[:, 1], 0, output_h)
             # Polygon must cover enough area
             polys = snake_coco_utils.filter_tiny_polys(instance)
             # Poly co-ordinates must be clock-wise
