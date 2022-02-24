@@ -100,7 +100,8 @@ class Evaluator:
             for polys in py:
                 cv2.drawContours(pred_mask, [polys.astype(int)], -1, (255, 255, 255), -1)
 
-            # cv2.imshow("Pred Mask", pred_mask)
+            if cfg.debug_test:
+                cv2.imshow("Pred Mask", pred_mask)
 
             # GT Mask
             gt_mask = np.zeros(orig_img.shape, dtype=np.uint8)
@@ -111,18 +112,31 @@ class Evaluator:
                 instance_poly = [np.array(poly, dtype=int).reshape(-1, 2) for poly in ann['segmentation']]
                 cv2.drawContours(gt_mask, instance_poly, -1, (255, 255, 255), -1)
 
-            # cv2.imshow("Truth Mask", gt_mask)
+            if cfg.debug_test:
+                cv2.imshow("Truth Mask", gt_mask)
 
+            M = np.float32(
+                [[1, 0, 0],
+                 [0, 1, 0]])
+            pred_mask = cv2.warpAffine(pred_mask,M, (pred_mask.shape[1], pred_mask.shape[0]))
 
-            gt_mask = gt_mask.astype(np.bool)
-            pred_mask = pred_mask.astype(np.bool)
+            gt_mask = gt_mask.astype(np.bool)[:,:, 0]
+            pred_mask = pred_mask.astype(np.bool)[:,:, 0]
+
+            # pred_mask = gt_mask
 
             intersection = np.logical_and(gt_mask, pred_mask)
             dice_score = 2 * intersection.sum() / (gt_mask.sum() + pred_mask.sum())
-            self.dice += dice_score
-            self.num_images +=  1
 
-            # cv2.waitKey(0)
+            if cfg.debug_test:
+                cv2.imshow("Intersection", intersection.astype(np.uint8) * 125 + gt_mask.astype(np.uint8) * 125)
+                print(dice_score)
+
+            self.dice += dice_score
+            self.num_images += 1
+
+            if cfg.debug_test:
+                cv2.waitKey(0)
 
             # mask_out = Image.fromarray(mask)
             #
@@ -158,8 +172,9 @@ class Evaluator:
         self.results = []
         self.img_ids = []
         self.aps.append(coco_eval.stats[0])
-        self.dice /= self.num_images
-        print("Dice Score:", self.dice)
+        if cfg.dice:
+            self.dice /= self.num_images
+            print("Dice Score:", self.dice)
         return {'segm_ap': coco_eval.stats[0]}
 
 
@@ -218,8 +233,11 @@ class DetectionEvaluator:
                 circle_ = data_utils.affine_transform(circle[i][:2].reshape(-1, 2), trans_output_inv).ravel()
                 cv2.circle(pred_img, (int(circle_[0]), int(circle_[1])), int(circle[i][2] * trans_output_inv[0][0]), (0, 255, 0), 2)
 
+            # cv2.circle(pred_img, (100, 0), 20,
+            #            (0, 255, 0), 2)
+
             # Show the image
-            # cv2.imshow("Prediction", pred_img)
+            cv2.imshow("Prediction", pred_img)
             cv2.imwrite(os.path.join("/home/ethan/Documents/CircleSnake/data/debug", str(self.iter_num) + "_det_pred.png"), pred_img)
 
             # Ground truth
@@ -228,14 +246,14 @@ class DetectionEvaluator:
             for ann in anns:
                 cv2.circle(pred_img, (round(ann["circle_center"][0]), round(ann["circle_center"][1]))
                            , round(ann["circle_radius"]), (0, 255, 0), 2)
-            # cv2.imshow("GT", gt_img)
+            cv2.imshow("GT", gt_img)
             cv2.imwrite(
                 os.path.join("/home/ethan/Documents/CircleSnake/data/debug", str(self.iter_num) + "_det_truth.png"),
                 gt_img)
             # self.iter_num += 1
 
             self.iter_num += 1
-            # cv2.waitKey(0)
+            cv2.waitKey(0)
 
         circle_dets = []
         for i in range(len(label)):
