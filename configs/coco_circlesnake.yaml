@@ -9,13 +9,17 @@ train:
     lr: 1e-4
     milestones: (80, 120, 150, 170)
     gamma: 0.5
-    batch_size: 2
+    batch_size: 4
     dataset: 'CocoTrain'
     num_workers: 16
-    epoch: 100
+    epoch: 150
+    weight_decay: 0.0
 test:
     dataset: 'CocoVal'
     batch_size: 1
 
-heads: {'ct_hm': 1, 'radius': 1}
-segm_or_bbox: 'bbox'
+heads: {'ct_hm': 1, 'radius': 1, 'reg': 2}
+segm_or_bbox: 'both'
+ct_score: 0.05
+save_ep: 1
+eval_ep: 1

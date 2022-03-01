@@ -31,6 +31,9 @@ cfg.debug_test = False
 # cfg
 cfg.dice = False
 
+cfg.rotate_reproduce = False
+cfg.rotate = 0
+
 
 # -----------------------------------------------------------------------------
 # train
@@ -78,6 +81,8 @@ cfg.use_gt_det = False
 # -----------------------------------------------------------------------------
 cfg.ct_score = 0.05
 cfg.demo_path = ''
+
+cfg.filter_border = False
 
 
 def parse_cfg(cfg, args):

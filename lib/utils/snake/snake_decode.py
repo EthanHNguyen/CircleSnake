@@ -139,9 +139,8 @@ def decode_ct_hm_circle(ct_hm, radius, reg=None, K=1000):
 
 def get_circle(detection):
     num_detections = detection.shape[0]
-
-    # FIXME - DONT include end value
-    angles = torch.linspace(0, 2 * np.pi, snake_config.poly_num + 1, dtype=torch.float)[:snake_config.poly_num]
+    angles = torch.linspace(np.pi * (3.0 / 2.0), - np.pi * (1.0 / 2.0), snake_config.poly_num + 1, dtype=torch.float)[
+             :snake_config.poly_num]
 
     circle = torch.ones((1, snake_config.poly_num, 2), dtype=torch.float).to('cuda')
     circle[..., 0] = torch.cos(angles)
@@ -154,6 +153,9 @@ def get_circle(detection):
     circles = circle.repeat(num_detections, 1, 1)
     circles[..., 0] = radius * circles[..., 0] + x
     circles[..., 1] = radius * circles[..., 1] + y
+
+    # circles[..., 0] = torch.clamp(circles[..., 0], min=0, max=127)
+    # circles[..., 1] = torch.clamp(circles[..., 1], min=0, max=127)
 
     return circles
 

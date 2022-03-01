@@ -3,6 +3,7 @@ from .snake import Snake
 from lib.utils.snake import snake_gcn_utils, snake_config, snake_decode, active_spline
 import torch
 from lib.utils import data_utils
+from lib.utils.snake import snake_config, snake_cityscapes_utils, snake_eval_utils, snake_poly_utils, visualize_utils
 
 
 class Evolution(nn.Module):
@@ -120,4 +121,3 @@ class Evolution(nn.Module):
                 ret.update({'py': pys})
 
         return output
-

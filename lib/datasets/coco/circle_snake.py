@@ -68,18 +68,19 @@ class Dataset(data.Dataset):
         output_h, output_w = inp_out_hw[2:]
         gt_circles_ = []
         instance_polys_ = []
+
         for i, circle in enumerate(gt_circles):
             circle = circle
             # Flip annotations if necessary
             if flipped:
-                circle["circle_center"][0] = width - circle["circle_center"][0]
+                circle["circle_center"][0] = width - circle["circle_center"][0] - 1
 
             # Perform affine transformation on annotations
             circle["circle_center"] = snake_coco_utils.affine_transform_point(circle["circle_center"], trans_output)
+            circle["circle_radius"] = circle["circle_radius"] * trans_output[0][0]
 
             # Verify object is still in image
             if 0 <= circle["circle_center"][0] < output_w - 1 and 0 <= circle["circle_center"][1] < output_h - 1:
-                circle["circle_radius"] = circle["circle_radius"] * trans_output[0][0]
                 gt_circles_.append(circle.copy())
 
                 # Transform poly
@@ -153,18 +154,22 @@ class Dataset(data.Dataset):
         x, y = circle["circle_center"]
         radius = circle["circle_radius"]
 
+        # assert (abs(x - x2) < 0.01)
+        # assert (abs(y - y2) < 0.01)
+        # assert (abs(radius - radius2) < 0.01)
+
         ct = [x, y]
         ct_float = ct.copy()
         ct = np.round(ct).astype(np.int32)
 
         gauss_radius = data_utils.gaussian_radius((math.ceil(radius*2), math.ceil(radius*2)))
-        gauss_radius = max(0, int(gauss_radius))
+        gauss_radius = max(0, int(round(gauss_radius)))
         data_utils.draw_umich_gaussian(ct_hm, ct, gauss_radius)
         retRadius.append([radius])
         assert(radius >= 0)
 
-        assert(0 <= x <= 128)
-        assert (0 <= y <= 128)
+        assert(0 <= x < 127)
+        assert (0 <= y < 127)
         retCenter.append([x, y])
 
         assert (0 <= ct[1] * ct_hm.shape[1] + ct[0] <= ct_hm.shape[0] * ct_hm.shape[1])
@@ -257,25 +262,37 @@ class Dataset(data.Dataset):
 
         for i in range(len(gt_circles)):
             cls_id = cls_ids[i]
-            gt_circle = gt_circles[i]
             instance_poly = instance_polys[i]
 
-            # index into object
             for j in range(len(instance_poly)):
                 poly = instance_poly[j]
+                x, y, r = snake_coco_utils.numerical_stable_circle(poly)
+                gt_circles[i]["circle_center"] = (x, y)
+                gt_circles[i]["circle_radius"] = r
+                gt_circle = gt_circles[i]
 
                 # Validate
                 x_min, y_min = np.min(poly[:, 0]), np.min(poly[:, 1])
                 x_max, y_max = np.max(poly[:, 0]), np.max(poly[:, 1])
                 # bbox = [x_min, y_min, x_max, y_max]
                 h, w = y_max - y_min + 1, x_max - x_min + 1
+                if cfg.filter_border and (x_min < 0\
+                        or y_min < 0\
+                        or x_max > 127\
+                        or y_max > 127\
+                        or x - r < 0 \
+                        or y - r < 0 \
+                        or x + r > 127 \
+                        or y + r > 127):
+                    continue
                 if h <= 0 \
                         or w <= 0\
-                        or x_min < 0\
-                        or y_min < 0\
-                        or x_max > 128\
-                        or y_max > 128:
+                        or x < 0\
+                        or y < 0\
+                        or x > 127\
+                        or y > 127:
                     continue
+
 
                 self.prepare_detection(gt_circle, poly, ct_hm, cls_id, circle_center, radius, reg, ct_cls, ct_ind)
                 # gt_circle = self.prepare_detection(poly, gt_circle, ct_hm, cls_id, radius, center, reg, ct_cls, ct_ind)

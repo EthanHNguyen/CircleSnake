@@ -33,6 +33,8 @@ class Evaluator:
             v: k for k, v in self.json_category_id_to_contiguous_id.items()
         }
 
+        self.iter_num = 0
+
     def evaluate(self, output, batch):
         detection = output['detection']
         score = detection[:, 4].detach().cpu().numpy()
@@ -52,6 +54,30 @@ class Evaluator:
         ori_h, ori_w = img['height'], img['width']
         py = [data_utils.affine_transform(py_, trans_output_inv) for py_ in py]
         rles = snake_eval_utils.coco_poly_to_rle(py, ori_h, ori_w)
+
+        if cfg.debug_test:
+            path = os.path.join(self.data_root, img["file_name"])
+            orig_img = cv2.imread(path)
+
+            # Prediction
+            pred_img = orig_img.copy()
+            for polys in py:
+                poly_corrected = np.zeros(shape=(128, 2), dtype=np.int32)
+
+                # Limit to border
+                for i, (poly_x, poly_y) in enumerate(polys):
+                    if poly_x < 0:
+                        poly_x = 0
+                    elif poly_x > ori_w:
+                        poly_x = ori_w
+                    if poly_y < 0:
+                        poly_y = 0
+                    elif poly_y > ori_h:
+                        poly_y = ori_h
+                    poly_corrected[i] = int(round(poly_x)), int(round(poly_y))
+                cv2.polylines(pred_img, [np.int32(poly_corrected)], True, (0, 255, 0), 2)
+            # cv2.imshow("Prediction", orig_img)
+            cv2.imwrite(os.path.join("/home/ethan/Documents/CircleSnake/data/debug", str(self.iter_num) + "_segm_pred.png"), pred_img)
 
         coco_dets = []
         for i in range(len(rles)):

@@ -236,7 +236,7 @@ def color_aug(data_rng, image, eig_val, eig_vec):
 
 
 def blur_aug(inp):
-    if np.random.random() < 0.1:
+    if np.random.random() < 0.2:
         if np.random.random() < 0.8:
             inp = iaa.blur_gaussian_(inp, abs(np.clip(np.random.normal(0, 1.5), -3, 3)))
         else:
@@ -251,6 +251,28 @@ def gaussian_blur(image, sigma):
         nb_channels = image.shape[2]
         for channel in range(nb_channels):
             image[:, :, channel] = ndimage.gaussian_filter(image[:, :, channel], sigma, mode="mirror")
+
+def gaussian_radius(det_size, min_overlap=0.7):
+  height, width = det_size
+
+  a1  = 1
+  b1  = (height + width)
+  c1  = width * height * (1 - min_overlap) / (1 + min_overlap)
+  sq1 = np.sqrt(b1 ** 2 - 4 * a1 * c1)
+  r1  = (b1 + sq1) / 2
+
+  a2  = 4
+  b2  = 2 * (height + width)
+  c2  = (1 - min_overlap) * width * height
+  sq2 = np.sqrt(b2 ** 2 - 4 * a2 * c2)
+  r2  = (b2 + sq2) / 2
+
+  a3  = 4 * min_overlap
+  b3  = -2 * min_overlap * (height + width)
+  c3  = (min_overlap - 1) * width * height
+  sq3 = np.sqrt(b3 ** 2 - 4 * a3 * c3)
+  r3  = (b3 + sq3) / 2
+  return min(r1, r2, r3)
 
 
 def inter_from_mask(pred, gt):
@@ -402,9 +424,16 @@ def clip_to_image(bbox, h, w):
     return bbox
 
 def circle_clip_to_image(circle, h, w):
-    circle[..., :2] = torch.clamp(circle[..., :2], min=0)
-    circle[..., 0] = torch.clamp(circle[..., 0], max=w-1)
-    circle[..., 1] = torch.clamp(circle[..., 1], max=h-1)
+    if cfg.filter_border:
+        b_size = cfg.filter_border
+        ind1 = torch.logical_or(circle[:, :, 0] - circle[:, :, 2] < 0,  circle[:, :, 1] - circle[:, :, 2] < 0)
+        ind2 = torch.logical_or(circle[:, :, 0] + circle[:, :, 2] > w - 1, circle[:, :, 1] + circle[:, :, 2] > h - 1)
+        ind = torch.logical_not(torch.logical_or(ind1, ind2))
+        circle = ind.resize(circle.shape[0], 1000, 1).repeat(1, 1, 5).int().float() * circle
+    else:
+        circle[..., :2] = torch.clamp(circle[..., :2], min=0)
+        circle[..., 0] = torch.clamp(circle[..., 0], max=w-1)
+        circle[..., 1] = torch.clamp(circle[..., 1], max=h-1)
     return circle
 
 

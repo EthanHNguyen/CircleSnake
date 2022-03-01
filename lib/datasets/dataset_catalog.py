@@ -11,8 +11,8 @@ class DatasetCatalog(object):
         },
         'monusegVal': {
             'id': 'coco',
-            'data_root': 'data/monuseg/test',
-            'ann_file': 'data/monuseg/MoNuSeg_test2021.json',
+            'data_root': 'data/monuseg/val',
+            'ann_file': 'data/monuseg/MoNuSeg_val2021.json',
             'split': 'test'
         },
         'monusegTest': {
@@ -23,14 +23,14 @@ class DatasetCatalog(object):
         },
         'CocoTrain': {
             'id': 'coco',
-            'data_root': 'data/monuseg/train',
-            'ann_file': 'data/monuseg/MoNuSeg_train2021.json',
+            'data_root': 'data/kidpath_multiROI/train2019',
+            'ann_file': 'data/kidpath_multiROI/kidneypath_train2019.json',
             'split': 'train'
         },
         'CocoVal': {
             'id': 'coco',
-            'data_root': 'data/monuseg/val',
-            'ann_file': 'data/monuseg/MoNuSeg_val2021.json',
+            'data_root': 'data/kidpath_multiROI/val2019',
+            'ann_file': 'data/kidpath_multiROI/kidneypath_val2019.json',
             'split': 'test'
         },
         'CocoMini': {
@@ -41,8 +41,8 @@ class DatasetCatalog(object):
         },
         'CocoTest': {
             'id': 'coco_test',
-            'data_root': 'data/monuseg/test',
-            'ann_file': 'data/monuseg/MoNuSeg_test2021.json',
+            'data_root': 'data/kidpath_multiROI/test',
+            'ann_file': 'data/kidpath_multiROI/kidneypath_test2019.json',
             'split': 'test'
         },
         'CityscapesTrain': {

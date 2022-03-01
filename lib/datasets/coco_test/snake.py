@@ -6,6 +6,7 @@ import math
 from lib.utils import data_utils
 import torch.utils.data as data
 from pycocotools.coco import COCO
+from lib.config import cfg
 
 
 class Dataset(data.Dataset):
@@ -46,6 +47,9 @@ class Dataset(data.Dataset):
 
         trans_input = data_utils.get_affine_transform(center, scale, 0, [input_w, input_h])
         inp = cv2.warpAffine(img, trans_input, (input_w, input_h), flags=cv2.INTER_LINEAR)
+
+        if cfg.rotate == 90:
+            inp = cv2.rotate(inp, cv2.ROTATE_90_CLOCKWISE)
 
         inp = self.normalize_image(inp)
         ret = {'inp': inp}

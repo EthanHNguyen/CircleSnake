@@ -25,7 +25,7 @@ class Network(nn.Module):
         reg = output['reg']
 
         ct, detection = snake_decode.decode_ct_hm_circle(ct_hm, radius, reg)
-        detection[:, :2] = data_utils.circle_clip_to_image(detection[:, :2], h, w)
+        detection = data_utils.circle_clip_to_image(detection, h, w)
         output.update({'ct': ct, 'detection': detection})
         return ct, detection
 

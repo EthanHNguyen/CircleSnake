@@ -38,10 +38,23 @@ class Trainer(object):
             # batch = self.to_cuda(batch)
             output, loss, loss_stats, image_stats = self.network(batch)
 
-            # training stage: loss; optimizer; scheduler
-            loss = loss.mean()
-            optimizer.zero_grad()
-            loss.backward()
+
+
+            # training stage: loss; optimizer; schedule
+            # loss = loss.mean()
+            # optimizer.zero_grad()
+            # loss.backward()
+            #
+            py_loss = loss[1]
+            loss = loss[0]
+            if iteration % 40 == 0:
+                loss = loss.mean()
+                loss.backward()
+            else:
+                py_loss = py_loss.mean()
+                optimizer.zero_grad()
+                py_loss.backward()
+
             torch.nn.utils.clip_grad_value_(self.network.parameters(), 40)
             optimizer.step()
 

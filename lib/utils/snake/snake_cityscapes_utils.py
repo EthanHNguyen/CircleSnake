@@ -563,7 +563,11 @@ def uniformsample(pgtnp_px2, newpnum):
 
 def uniformsample_circle(gt_circle, newpnum):
     img_init_poly = []
-    angles = np.linspace(0, 2 * np.pi, newpnum, endpoint=False)
+    # angles = np.linspace(np.pi / 2.0, -np.pi / 2.0, newpnum + 1, endpoint=True)[:newpnum]
+    # angles = np.linspace(np.pi / 2.0, - np.pi * (3.0 / 2.0), newpnum + 1, endpoint=True)[:newpnum]
+    # angles = np.linspace(- np.pi * (3.0 / 2.0), np.pi / 2.0, newpnum + 1, endpoint=True)[:newpnum]
+
+    angles = np.linspace(np.pi * (3.0 / 2.0), - np.pi * (1.0 / 2.0), newpnum + 1, endpoint=True)[:newpnum]
 
     for angle in angles:
         x = gt_circle["circle_radius"] * np.cos(angle) + gt_circle["circle_center"][0]
