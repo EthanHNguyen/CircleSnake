@@ -96,6 +96,7 @@ class Evaluator:
 
         self.results.extend(coco_dets)
         self.img_ids.append(img_id)
+        self.iter_num += 1
 
     def summarize(self):
         json.dump(self.results, open(os.path.join(self.result_dir, 'results.json'), 'w'))
