@@ -41,8 +41,8 @@ class Evaluator:
         label = detection[:, 5].detach().cpu().numpy().astype(int)
         py = output['py'][-1].detach().cpu().numpy() * snake_config.down_ratio
 
-        if len(py) == 0:
-            return
+        # if len(py) == 0:
+        #     return
 
         img_id = int(batch['meta']['img_id'][0])
         center = batch['meta']['center'][0].detach().cpu().numpy()
@@ -77,7 +77,12 @@ class Evaluator:
                     poly_corrected[i] = int(round(poly_x)), int(round(poly_y))
                 cv2.polylines(pred_img, [np.int32(poly_corrected)], True, (0, 255, 0), 2)
             # cv2.imshow("Prediction", orig_img)
-            cv2.imwrite(os.path.join("/home/ethan/Documents/CircleSnake/data/debug", str(self.iter_num) + "_segm_pred.png"), pred_img)
+            # cv2.imwrite(os.path.join("/home/ethan/Documents/CircleSnake/data/debug", str(self.iter_num) + "_segm_pred.png"), pred_img)
+
+            path = os.path.join("/home/ethan/Documents/CircleSnake/data/debug", str(self.iter_num))
+            if not os.path.exists(path):
+                os.makedirs(path)
+            cv2.imwrite(os.path.join(path, "deepsnake_pred_segm.png"), pred_img)
 
         coco_dets = []
         for i in range(len(rles)):

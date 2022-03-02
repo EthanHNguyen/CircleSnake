@@ -1,3 +1,5 @@
+import cv2
+
 from lib.config import cfg, args
 import numpy as np
 import os
@@ -55,18 +57,21 @@ def run_evaluate():
     if cfg.rotate_reproduce:
         cfg.segm_or_bbox = "segm"
         data_loader = make_data_loader(cfg, is_train=False)
-        rot_data_loader = make_data_loader(cfg, is_train=False)
-
+        # rot_data_loader = make_data_loader(cfg, is_train=False)
         evaluator = make_evaluator(cfg)
 
         for batch in tqdm.tqdm(data_loader):
             inp = batch['inp'].cuda()
+            # inp_rotated = torch.from_numpy(cv2.rotate(batch['inp'].numpy().reshape(512, 512, 3), cv2.ROTATE_90_CLOCKWISE).reshape(1, 3, 512, 512)).cuda()
             with torch.no_grad():
                 output = network(inp, batch)
+                # output_rot = network(inp_rotated, batch)
+
             evaluator.evaluate_rotate(output, batch)
+            # evaluator.evaluate_rotate(output_rot, batch, True)
 
         cfg.rotate = 90
-        for batch in tqdm.tqdm(rot_data_loader):
+        for batch in tqdm.tqdm(data_loader):
             inp = batch['inp'].cuda()
             with torch.no_grad():
                 output = network(inp, batch)

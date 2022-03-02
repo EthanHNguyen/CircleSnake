@@ -82,11 +82,11 @@ class Evaluator:
                         poly_y = ori_h
                     poly_corrected[i] = int(round(poly_x)), int(round(poly_y))
                 cv2.polylines(pred_img, [poly_corrected], True, (0, 255, 0), 2)
-            cv2.imshow("Prediction", pred_img)
+            # cv2.imshow("Prediction", pred_img)
             path = os.path.join("/home/ethan/Documents/CircleSnake/data/debug", str(self.iter_num))
             if not os.path.exists(path):
                 os.makedirs(path)
-            # cv2.imwrite(os.path.join(path, "circlesnake_pred_segm.png"), pred_img)
+            cv2.imwrite(os.path.join(path, "circlesnake_pred_segm.png"), pred_img)
 
             # Ground truth
             gt_img = orig_img.copy()
@@ -174,9 +174,6 @@ class Evaluator:
         label = detection[:, 4].detach().cpu().numpy().astype(int)
         py = output['py'][-1].detach().cpu().numpy() * snake_config.down_ratio
 
-        if len(py) == 0:
-            return
-
         img_id = int(batch['meta']['img_id'][0])
         center = batch['meta']['center'][0].detach().cpu().numpy()
         scale = batch['meta']['scale'][0].detach().cpu().numpy()
@@ -207,19 +204,26 @@ class Evaluator:
             self.rotate_mask.append(pred_mask)
         else:
             self.mask.append(pred_mask)
+
     def summarize_rotate(self):
         for i in range(len(self.mask)):
+            print(i)
             intersection = np.logical_and(self.mask[i], self.rotate_mask[i])
             dice_score = 2 * intersection.sum() / (self.mask[i].sum() + self.rotate_mask[i].sum())
 
-            # print(dice_score)
+            print(dice_score)
+            if cfg.debug_test and dice_score == 0:
+                cv2.imshow("Predication", self.mask[i].astype(np.uint8) * 255)
+                cv2.imshow("Prediction Rotate", self.rotate_mask[i].astype(np.uint8) * 255)
+                cv2.imshow("Prediction Rotate", self.rotate_mask[i].astype(np.uint8) * 255)
+                cv2.waitKey(0)
 
             import math
             if math.isnan(dice_score):
                 print("nan")
                 dice_score = 1
             self.dice += dice_score
-        print(self.dice / len(self.mask))
+        print("Rotate Dice", self.dice / len(self.mask))
 
     def summarize(self):
         json.dump(self.results, open(os.path.join(self.result_dir, 'results.json'), 'w'))

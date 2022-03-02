@@ -166,10 +166,10 @@ class Dataset(data.Dataset):
         gauss_radius = max(0, int(round(gauss_radius)))
         data_utils.draw_umich_gaussian(ct_hm, ct, gauss_radius)
         retRadius.append([radius])
-        assert(radius >= 0)
-
-        assert(0 <= x < 127)
-        assert (0 <= y < 127)
+        # assert(radius >= 0)
+        #
+        # assert(0 <= x < 127)
+        # assert (0 <= y < 127)
         retCenter.append([x, y])
 
         assert (0 <= ct[1] * ct_hm.shape[1] + ct[0] <= ct_hm.shape[0] * ct_hm.shape[1])

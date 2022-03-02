@@ -46,14 +46,14 @@ def augment_circle(img, split, _data_rng, _eig_val, _eig_vec, mean, std, polys):
     if split != 'train':
         center = np.array([width // 2, height // 2])
         # scale = np.array([width, height])
-        # x = 32
-        # input_w = (int(width / 1.) | (x - 1)) + 1
-        # input_h = (int(height / 1.) | (x - 1)) + 1
-        # scale = np.array([input_w, input_h])
+        x = 32
+        input_w = (int(width / 1.) | (x - 1)) + 1
+        input_h = (int(height / 1.) | (x - 1)) + 1
+        scale = np.array([input_w, input_h])
         # input_w, input_h = (width + x - 1) // x * x, (height + x - 1) // x * x
         # input_w, input_h = int((width / 0.5 + x - 1) // x * x), int((height / 0.5 + x - 1) // x * x)
-        input_w, input_h = img.shape[0], img.shape[1]
-        scale = 1.0 * np.array([input_w, input_h])
+        # input_w, input_h = img.shape[0], img.shape[1]
+        # scale = 1.0 * np.array([input_w, input_h])
 
     trans_input = data_utils.get_affine_transform(center, scale, 0, [input_w, input_h])
     inp = cv2.warpAffine(img, trans_input, (input_w, input_h), flags=cv2.INTER_LINEAR)

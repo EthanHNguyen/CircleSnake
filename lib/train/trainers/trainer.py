@@ -44,11 +44,12 @@ class Trainer(object):
             # loss = loss.mean()
             # optimizer.zero_grad()
             # loss.backward()
-            #
+
             py_loss = loss[1]
             loss = loss[0]
-            if iteration % 40 == 0:
+            if iteration % 2 == 0:
                 loss = loss.mean()
+                optimizer.zero_grad()
                 loss.backward()
             else:
                 py_loss = py_loss.mean()
