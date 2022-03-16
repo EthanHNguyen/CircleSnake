@@ -1,3 +1,4 @@
+import math
 import os
 import cv2
 import json
@@ -95,12 +96,12 @@ class Evaluator:
             for ann in anns:
                 instance_poly = [np.array(poly, dtype=int).reshape(-1, 2) for poly in ann['segmentation']]
                 cv2.polylines(gt_img, instance_poly, True, (0, 255, 0), 2)
-            cv2.imshow("GT", gt_img)
+            # cv2.imshow("GT", gt_img)
             path = os.path.join("/home/ethan/Documents/CircleSnake/data/debug", str(self.iter_num))
             if not os.path.exists(path):
                 os.makedirs(path)
-            # cv2.imwrite(os.path.join(path, "circlesnake_truth_segm.png"), gt_img)
-            cv2.waitKey(0)
+            cv2.imwrite(os.path.join(path, "circlesnake_truth_segm.png"), gt_img)
+            # cv2.waitKey(0)
 
         if cfg.dice:
             # Prediction mask
@@ -136,6 +137,9 @@ class Evaluator:
 
             intersection = np.logical_and(gt_mask, pred_mask)
             dice_score = 2 * intersection.sum() / (gt_mask.sum() + pred_mask.sum())
+
+            if math.isnan(dice_score):
+                dice_score = 1
 
             if cfg.debug_test:
                 cv2.imshow("Intersection", intersection.astype(np.uint8) * 125 + gt_mask.astype(np.uint8) * 125)
