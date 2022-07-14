@@ -41,20 +41,20 @@ class Trainer(object):
 
 
             # training stage: loss; optimizer; schedule
-            # loss = loss.mean()
-            # optimizer.zero_grad()
-            # loss.backward()
+            loss = loss.mean()
+            optimizer.zero_grad()
+            loss.backward()
 
-            py_loss = loss[1]
-            loss = loss[0]
-            if iteration % 2 == 0:
-                loss = loss.mean()
-                optimizer.zero_grad()
-                loss.backward()
-            else:
-                py_loss = py_loss.mean()
-                optimizer.zero_grad()
-                py_loss.backward()
+            # py_loss = loss[1]
+            # loss = loss[0]
+            # if iteration % 2 == 0:
+            #     loss = loss.mean()
+            #     optimizer.zero_grad()
+            #     loss.backward()
+            # else:
+            #     py_loss = py_loss.mean()
+            #     optimizer.zero_grad()
+            #     py_loss.backward()
 
             torch.nn.utils.clip_grad_value_(self.network.parameters(), 40)
             optimizer.step()

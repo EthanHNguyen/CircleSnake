@@ -27,6 +27,8 @@ cfg.pretrain = ""
 # debug
 cfg.debug_train = False
 cfg.debug_test = False
+cfg.show_images = False
+cfg.save_images = False
 
 # cfg
 cfg.dice = False

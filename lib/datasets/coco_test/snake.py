@@ -43,6 +43,7 @@ class Dataset(data.Dataset):
         input_w = (int(width / 1.) | (x - 1)) + 1
         input_h = (int(height / 1.) | (x - 1)) + 1
 
+        # if cfg.debug_test:
         trans_input = data_utils.get_affine_transform(center, scale, 0, [input_w, input_h])
         inp = cv2.warpAffine(img, trans_input, (input_w, input_h), flags=cv2.INTER_LINEAR)
 

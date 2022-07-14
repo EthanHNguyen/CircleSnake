@@ -15,18 +15,20 @@ WHITE = (255, 255, 255)
 iter_det = 0
 
 def visualize_snake_detection_circle(orig_img, data):
-    img = orig_img.copy()
-    img = img_utils.bgr_to_rgb(img)
-    def blend_hm_img(hm, img):
-        hm = np.max(hm, axis=0)
-        h, w = hm.shape[:2]
-        img = cv2.resize(img, dsize=(w, h), interpolation=cv2.INTER_LINEAR)
-        hm = np.array([255, 255, 255]) - (hm.reshape(h, w, 1) * colors[0]).astype(np.uint8)
-        ratio = 0.5
-        blend = (img * ratio + hm * (1 - ratio)).astype(np.uint8)
-        return blend
+    # img = orig_img.copy()
+    # img = img_utils.bgr_to_rgb(img)
+    # def blend_hm_img(hm, img):
+    #     hm = np.max(hm, axis=0)
+    #     h, w = hm.shape[:2]
+    #     img = cv2.resize(img, dsize=(w, h), interpolation=cv2.INTER_LINEAR)
+    #     hm = np.array([255, 255, 255]) - (hm.reshape(h, w, 1) * colors[0]).astype(np.uint8)
+    #     ratio = 0.5
+    #     blend = (img * ratio + hm * (1 - ratio)).astype(np.uint8)
+    #     return blend
+    #
+    # img = blend_hm_img(data["ct_hm"], img)
 
-    img = blend_hm_img(data["ct_hm"], img)
+    img = ((data["inp"].transpose(1, 2, 0) * snake_config.std + snake_config.mean) * 255).astype(np.uint8)
     ct_ind = np.array(data['ct_ind'])
     w = img.shape[1] // snake_config.down_ratio
     xs = ct_ind % w
@@ -46,8 +48,8 @@ def visualize_snake_detection_circle(orig_img, data):
         y *= 4
         radius *= 4
         cv2.circle(img, (int(x), int(y)), int(radius), (0, 255, 0), 1)
-    # cv2.imshow("Ground Truth - Detection", img)
-    # cv2.waitKey(0)
+    cv2.imshow("Ground Truth - Detection", img)
+    cv2.waitKey(0)
     global iter_det
     path = os.path.join("/home/ethan/Documents/CircleSnake/data/debug", str(iter_det))
     if not os.path.exists(path):
@@ -127,6 +129,7 @@ def visualize_snake_evolution(img, data):
     #     plt.plot(poly[:, 0], poly[:, 1])
     #     plt.scatter(poly[0, 0], poly[0, 1], edgecolors='w')
     # plt.show()
+    img = ((data["inp"].transpose(1, 2, 0) * snake_config.std + snake_config.mean) * 255).astype(np.uint8)
     for poly in data['i_gt_py']:
         poly = poly * 4
         poly = np.append(poly, [poly[0]], axis=0)

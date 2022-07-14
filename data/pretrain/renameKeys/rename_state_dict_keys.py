@@ -53,8 +53,8 @@ def add_dla_key(old_key):
     return new_key
 
 def main():
-    rename_state_dict_keys(source="../circledet_monuseg_dla.pth", key_transformation=add_dla_key,
-                           target="../circledet_monuseg_dla_converted.pth")
+    rename_state_dict_keys(source="../circledet_kidpath.pth", key_transformation=add_dla_key,
+                           target="../circledet_kidpath_conv.pth")
 
 if __name__ == "__main__":
     main()

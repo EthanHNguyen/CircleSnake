@@ -48,7 +48,7 @@ class Evaluator:
         label = detection[:, 4].detach().cpu().numpy().astype(int)
         py = output['py'][-1].detach().cpu().numpy() * snake_config.down_ratio
 
-        if len(py) == 0:
+        if not cfg.rotate_reproduce and not cfg.debug_test and len(py) == 0:
             return
 
         img_id = int(batch['meta']['img_id'][0])
@@ -68,7 +68,7 @@ class Evaluator:
         if cfg.debug_test:
             # Prediction
             pred_img = orig_img.copy()
-            for polys in py:
+            for poly_idx, polys in enumerate(py):
                 poly_corrected = np.zeros(shape=(128, 2), dtype=np.int32)
 
                 # Limit to border
@@ -83,11 +83,12 @@ class Evaluator:
                         poly_y = ori_h
                     poly_corrected[i] = int(round(poly_x)), int(round(poly_y))
                 cv2.polylines(pred_img, [poly_corrected], True, (0, 255, 0), 2)
-            # cv2.imshow("Prediction", pred_img)
-            path = os.path.join("/home/ethan/Documents/CircleSnake/data/debug", str(self.iter_num))
-            if not os.path.exists(path):
-                os.makedirs(path)
-            cv2.imwrite(os.path.join(path, "circlesnake_pred_segm.png"), pred_img)
+                text_pt_x = min(np.array(poly_corrected)[:, 0])
+                text_pt_y = min(np.array(poly_corrected)[:, 1])
+                cv2.rectangle(pred_img, (text_pt_x, text_pt_y),
+                              (text_pt_x + 40, text_pt_y - 15), (0, 255, 0), -1)
+                cv2.putText(pred_img, '%.2f' % score[poly_idx], (text_pt_x, text_pt_y),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
 
             # Ground truth
             gt_img = orig_img.copy()
@@ -96,12 +97,29 @@ class Evaluator:
             for ann in anns:
                 instance_poly = [np.array(poly, dtype=int).reshape(-1, 2) for poly in ann['segmentation']]
                 cv2.polylines(gt_img, instance_poly, True, (0, 255, 0), 2)
-            # cv2.imshow("GT", gt_img)
-            path = os.path.join("/home/ethan/Documents/CircleSnake/data/debug", str(self.iter_num))
-            if not os.path.exists(path):
-                os.makedirs(path)
-            cv2.imwrite(os.path.join(path, "circlesnake_truth_segm.png"), gt_img)
-            # cv2.waitKey(0)
+                text_pt_x = min(np.array(instance_poly)[0, :, 0])
+                text_pt_y = min(np.array(instance_poly)[0, :, 1])
+                cv2.rectangle(gt_img, (text_pt_x, text_pt_y),
+                              (text_pt_x + 40, text_pt_y - 15), (0, 255, 0), -1)
+                cv2.putText(gt_img, '%.2f' % 1, (text_pt_x, text_pt_y),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
+
+
+            if cfg.save_images:
+                path = os.path.join("/home/ethan/Documents/CircleSnake/data/debug", str(self.iter_num))
+                if not os.path.exists(path):
+                    os.makedirs(path)
+                cv2.imwrite(os.path.join(path, "circlesnake_pred_segm.png"), pred_img)
+
+                path = os.path.join("/home/ethan/Documents/CircleSnake/data/debug", str(self.iter_num))
+                if not os.path.exists(path):
+                    os.makedirs(path)
+                cv2.imwrite(os.path.join(path, "circlesnake_truth_segm.png"), gt_img)
+
+            if cfg.show_images:
+                cv2.imshow("Prediction", pred_img)
+                cv2.imshow("GT", gt_img)
+                cv2.waitKey(0)
 
         if cfg.dice:
             # Prediction mask
@@ -110,7 +128,7 @@ class Evaluator:
             for polys in py:
                 cv2.drawContours(pred_mask, [polys.astype(int)], -1, (255, 255, 255), -1)
 
-            if cfg.debug_test:
+            if cfg.debug_test and cfg.show_images:
                 cv2.imshow("Pred Mask", pred_mask)
 
             # GT Mask
@@ -122,7 +140,7 @@ class Evaluator:
                 instance_poly = [np.array(poly, dtype=int).reshape(-1, 2) for poly in ann['segmentation']]
                 cv2.drawContours(gt_mask, instance_poly, -1, (255, 255, 255), -1)
 
-            if cfg.debug_test:
+            if cfg.debug_test and cfg.show_images:
                 cv2.imshow("Truth Mask", gt_mask)
 
             M = np.float32(
@@ -148,7 +166,7 @@ class Evaluator:
             self.dice += dice_score
             self.num_images += 1
 
-            if cfg.debug_test:
+            if cfg.debug_test and cfg.show_images:
                 cv2.waitKey(0)
 
             # mask_out = Image.fromarray(mask)
@@ -231,8 +249,6 @@ class Evaluator:
 
     def summarize(self):
         json.dump(self.results, open(os.path.join(self.result_dir, 'results.json'), 'w'))
-        # path = "/home/ethan/Documents/detectron2/projects/MoNuSeg/monuseg_coco/coco_instances_results.json"
-        # coco_dets = self.coco.loadRes(path)
         coco_dets = self.coco.loadRes(os.path.join(self.result_dir, 'results.json'))
         coco_eval = COCOeval(self.coco, coco_dets, 'segm')
         coco_eval.params.maxDets = [1000, 1000, 1000]
@@ -247,75 +263,6 @@ class Evaluator:
             self.dice /= self.num_images
             print("Dice Score:", self.dice)
         return {'segm_ap': coco_eval.stats[0]}
-
-# class Evaluator:
-#     def __init__(self, result_dir):
-#         self.results = []
-#         self.img_ids = []
-#         self.aps = []
-#
-#         self.result_dir = result_dir
-#         os.system('mkdir -p {}'.format(self.result_dir))
-#
-#         args = DatasetCatalog.get(cfg.test.dataset)
-#         self.ann_file = args['ann_file']
-#         self.data_root = args['data_root']
-#         self.coco = coco.COCO(self.ann_file)
-#
-#         self.json_category_id_to_contiguous_id = {
-#             v: i for i, v in enumerate(self.coco.getCatIds())
-#         }
-#         self.contiguous_category_id_to_json_id = {
-#             v: k for k, v in self.json_category_id_to_contiguous_id.items()
-#         }
-#
-#     def evaluate(self, output, batch):
-#         detection = output['detection']
-#         score = detection[:, 3].detach().cpu().numpy()
-#         label = detection[:, 4].detach().cpu().numpy().astype(int)
-#         py = output['py'][-1].detach().cpu().numpy() * snake_config.down_ratio
-#
-#         if len(py) == 0:
-#             return
-#
-#         img_id = int(batch['meta']['img_id'][0])
-#         center = batch['meta']['center'][0].detach().cpu().numpy()
-#         scale = batch['meta']['scale'][0].detach().cpu().numpy()
-#
-#         h, w = batch['inp'].size(2), batch['inp'].size(3)
-#         trans_output_inv = data_utils.get_affine_transform(center, scale, 0, [w, h], inv=1)
-#         img = self.coco.loadImgs(img_id)[0]
-#         ori_h, ori_w = img['height'], img['width']
-#         py = [data_utils.affine_transform(py_, trans_output_inv) for py_ in py]
-#         rles = snake_eval_utils.coco_poly_to_rle(py, ori_h, ori_w)
-#
-#         coco_dets = []
-#         for i in range(len(rles)):
-#             detection = {
-#                 'image_id': img_id,
-#                 'category_id': self.contiguous_category_id_to_json_id[label[i]],
-#                 'segmentation': rles[i],
-#                 'score': float('{:.2f}'.format(score[i]))
-#             }
-#             coco_dets.append(detection)
-#
-#         self.results.extend(coco_dets)
-#         self.img_ids.append(img_id)
-#
-#     def summarize(self):
-#         json.dump(self.results, open(os.path.join(self.result_dir, 'results.json'), 'w'))
-#         coco_dets = self.coco.loadRes(os.path.join(self.result_dir, 'results.json'))
-#         coco_eval = COCOeval(self.coco, coco_dets, 'segm')
-#         coco_eval.params.imgIds = self.img_ids
-#         coco_eval.params.maxDets = [1000, 1000, 1000]
-#         coco_eval.evaluate()
-#         coco_eval.accumulate()
-#         coco_eval.summarize()
-#         self.results = []
-#         self.img_ids = []
-#         self.aps.append(coco_eval.stats[0])
-#         return {'ap': coco_eval.stats[0]}
-
 
 class DetectionEvaluator:
     def __init__(self, result_dir):

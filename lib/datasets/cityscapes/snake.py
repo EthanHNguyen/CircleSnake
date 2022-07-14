@@ -180,7 +180,7 @@ class Dataset(data.Dataset):
         ret.update(detection)
         ret.update(init)
         ret.update(evolution)
-        # visualize_utils.visualize_snake_detection(orig_img, ret)
+        visualize_utils.visualize_snake_detection(orig_img, ret)
         # visualize_utils.visualize_snake_evolution(orig_img, ret)
 
         ct_num = len(ct_ind)

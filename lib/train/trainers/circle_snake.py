@@ -45,7 +45,7 @@ class NetworkWrapper(nn.Module):
         scalar_stats.update({'loss': loss})
         image_stats = {}
 
-        loss = [loss, py_loss]
+        # loss = [loss, py_loss]
 
         return output, loss, scalar_stats, image_stats
 

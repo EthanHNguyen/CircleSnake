@@ -9,3 +9,10 @@ __pycache__/
 *.pth
 *.npy
 *.DS_Store
+lib/csrc/extreme_utils/build/
+lib/csrc/roi_align_layer/build/
+debug_metrics/
+custom_evaluator.py
+metrics_debug.py
+metrics_debug.ipynb
+detect.sh

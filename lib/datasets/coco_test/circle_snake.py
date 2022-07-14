@@ -42,12 +42,18 @@ class Dataset(data.Dataset):
         x = 32
         input_w = (int(width / 1.) | (x - 1)) + 1
         input_h = (int(height / 1.) | (x - 1)) + 1
-        scale = np.array([input_w, input_h])
+
         # input_w = 512
         # input_h = 512
+        scale = np.array([input_w, input_h])
 
         trans_input = data_utils.get_affine_transform(center, scale, 0, [input_w, input_h])
         inp = cv2.warpAffine(img, trans_input, (input_w, input_h), flags=cv2.INTER_LINEAR)
+
+        # if cfg.debug_test:
+            # cv2.imshow("Input", inp.astype(np.uint8))
+            # cv2.imshow("img", img)
+            # cv2.waitKey(0)
 
         if cfg.rotate == 90:
             inp = cv2.rotate(inp, cv2.ROTATE_90_CLOCKWISE)
