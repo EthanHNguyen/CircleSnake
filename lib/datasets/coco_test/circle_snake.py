@@ -40,13 +40,11 @@ class Dataset(data.Dataset):
 
         width, height = img.shape[1], img.shape[0]
         center = np.array([width // 2, height // 2])
-        # scale = np.array([width, height])
+
         x = 32
         input_w = (int(width / 1.0) | (x - 1)) + 1
         input_h = (int(height / 1.0) | (x - 1)) + 1
 
-        # input_w = 512
-        # input_h = 512
         scale = np.array([input_w, input_h])
 
         trans_input = data_utils.get_affine_transform(center, scale, 0, [input_w, input_h])

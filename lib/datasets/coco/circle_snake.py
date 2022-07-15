@@ -43,17 +43,6 @@ class Dataset(data.Dataset):
         return img, instance_polys, cls_ids
 
     def read_original_circle_data(self, anno, path):
-        """
-        This function returns the associated ground truth bounding circle annotation for each object in the image.
-
-        Args:
-            anno: The annotation file associated to an image containing >= 1 bounding circles.
-            path: The file path to an image.
-
-        Returns:
-            img: The image in an cv2 object.
-            GT_circle_annotations: A list containing only the bounding circle and category id.
-        """
         img = cv2.imread(path)
         gt_circles = []
         for ann in anno:
@@ -61,7 +50,6 @@ class Dataset(data.Dataset):
                 {
                     "circle_center": ann["circle_center"],
                     "circle_radius": ann["circle_radius"]
-                    # "class_id" : ann["category_id"]
                 }
             )
         instance_polys = [
@@ -113,7 +101,18 @@ class Dataset(data.Dataset):
 
         return gt_circles_, instance_polys_
 
-    def get_valid_polys(self, instance_polys, inp_out_hw):
+    def get_valid_polys(self, instance_polys: list, inp_out_hw: list) -> list:
+        """
+        Validates the polygon annotations created.
+
+        Args:
+            instance_polys (list): List of instance polygons
+            inp_out_hw (list): input and output / height and width. Important for resizing images.
+
+        Returns:
+            instance_polys_ (list): list of the filtered annotations
+
+        """
         output_h, output_w = inp_out_hw[2:]
         instance_polys_ = []
         for instance in instance_polys:
@@ -286,7 +285,6 @@ class Dataset(data.Dataset):
                 # Validate
                 x_min, y_min = np.min(poly[:, 0]), np.min(poly[:, 1])
                 x_max, y_max = np.max(poly[:, 0]), np.max(poly[:, 1])
-                # bbox = [x_min, y_min, x_max, y_max]
                 h, w = y_max - y_min + 1, x_max - x_min + 1
                 if cfg.filter_border and (
                     x_min < 0
