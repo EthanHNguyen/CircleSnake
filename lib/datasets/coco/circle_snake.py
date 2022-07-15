@@ -19,9 +19,7 @@ class Dataset(data.Dataset):
         self.split = split
 
         self.coco = COCO(ann_file)
-        # Self.anns really contains a list of ImgIds
         self.anns = sorted(self.coco.getImgIds())
-        # Keeps an image id if it contains annotations
         self.anns = np.array(
             [ann for ann in self.anns if len(self.coco.getAnnIds(imgIds=ann, iscrowd=0))]
         )
@@ -166,16 +164,8 @@ class Dataset(data.Dataset):
         ct_hm = ct_hm[cls_id]
         ct_cls.append(cls_id)
 
-        # Find circle from poly
-        # x, y, radius = snake_coco_utils.numerical_stable_circle(poly)
-        # x, y, radius = int(round(x)), int(round(y)), int(round(radius))
-
         x, y = circle["circle_center"]
         radius = circle["circle_radius"]
-
-        # assert (abs(x - x2) < 0.01)
-        # assert (abs(y - y2) < 0.01)
-        # assert (abs(radius - radius2) < 0.01)
 
         ct = [x, y]
         ct_float = ct.copy()
@@ -185,27 +175,11 @@ class Dataset(data.Dataset):
         gauss_radius = max(0, int(round(gauss_radius)))
         data_utils.draw_umich_gaussian(ct_hm, ct, gauss_radius)
         retRadius.append([radius])
-        # assert(radius >= 0)
-        #
-        # assert(0 <= x < 127)
-        # assert (0 <= y < 127)
         retCenter.append([x, y])
 
         assert 0 <= ct[1] * ct_hm.shape[1] + ct[0] <= ct_hm.shape[0] * ct_hm.shape[1]
         ct_ind.append(ct[1] * ct_hm.shape[1] + ct[0])
         reg.append((ct_float - ct).tolist())
-
-        # Downscale annotation
-        # x_min, y_min = ct[0] - w / 2, ct[1] - h / 2
-        # x_max, y_max = ct[0] + w / 2, ct[1] + h / 2
-        # decode_box = [x_min, y_min, x_max, y_max]
-        #
-        # return decode_box
-
-        # return {
-        #     "circle_center": [x, y],
-        #     "circle_radius": radius
-        # }
 
     def prepare_init(self, box, extreme_point, i_it_4pys, c_it_4pys, i_gt_4pys, c_gt_4pys, h, w):
         x_min, y_min = np.min(extreme_point[:, 0]), np.min(extreme_point[:, 1])
@@ -230,7 +204,6 @@ class Dataset(data.Dataset):
         x_min, y_min = np.min(poly[:, 0]), np.min(poly[:, 1])
         x_max, y_max = np.max(poly[:, 0]), np.max(poly[:, 1])
 
-        # octagon = snake_coco_utils.get_octagon(extreme_point)
         img_init_poly = snake_coco_utils.uniformsample_circle(gt_circle, snake_config.poly_num)
         can_init_poly = snake_coco_utils.img_poly_to_can_poly(
             img_init_poly, x_min, y_min, x_max, y_max
@@ -332,8 +305,6 @@ class Dataset(data.Dataset):
                 self.prepare_detection(
                     gt_circle, poly, ct_hm, cls_id, circle_center, radius, reg, ct_cls, ct_ind
                 )
-                # gt_circle = self.prepare_detection(poly, gt_circle, ct_hm, cls_id, radius, center, reg, ct_cls, ct_ind)
-                # self.prepare_init(decode_box, extreme_point, i_it_4pys, c_it_4pys, i_gt_4pys, c_gt_4pys, output_h, output_w)
                 self.prepare_evolution(poly, gt_circle, i_it_pys, c_it_pys, i_gt_pys, c_gt_pys)
 
         ret = {"inp": inp}
@@ -346,7 +317,6 @@ class Dataset(data.Dataset):
             "ct_cls": ct_cls,
             "ct_ind": ct_ind,
         }
-        # init = {'i_it_4py': i_it_4pys, 'c_it_4py': c_it_4pys, 'i_gt_4py': i_gt_4pys, 'c_gt_4py': c_gt_4pys}
         evolution = {
             "i_it_py": i_it_pys,
             "c_it_py": c_it_pys,
@@ -354,7 +324,6 @@ class Dataset(data.Dataset):
             "c_gt_py": c_gt_pys,
         }
         ret.update(detection)
-        # ret.update(init)
         ret.update(evolution)
 
         if cfg.debug_train:
