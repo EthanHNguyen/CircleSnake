@@ -1,13 +1,15 @@
+import math
 import os
-from lib.utils.snake import snake_coco_utils, snake_config, visualize_utils
+
 import cv2
 import numpy as np
-import math
-from lib.utils import data_utils
 import torch.utils.data as data
 from pycocotools.coco import COCO
+
 from lib.config import cfg
-import math
+from lib.utils import data_utils
+from lib.utils.snake import snake_coco_utils, snake_config, visualize_utils
+
 
 class Dataset(data.Dataset):
     def __init__(self, ann_file, data_root, split):
@@ -20,22 +22,26 @@ class Dataset(data.Dataset):
         # Self.anns really contains a list of ImgIds
         self.anns = sorted(self.coco.getImgIds())
         # Keeps an image id if it contains annotations
-        self.anns = np.array([ann for ann in self.anns if len(self.coco.getAnnIds(imgIds=ann, iscrowd=0))])
-        self.anns = self.anns[:500] if split == 'mini' else self.anns
+        self.anns = np.array(
+            [ann for ann in self.anns if len(self.coco.getAnnIds(imgIds=ann, iscrowd=0))]
+        )
+        self.anns = self.anns[:500] if split == "mini" else self.anns
         self.json_category_id_to_contiguous_id = {v: i for i, v in enumerate(self.coco.getCatIds())}
 
     def process_info(self, img_id):
         ann_ids = self.coco.getAnnIds(imgIds=img_id, iscrowd=0)
         anno = self.coco.loadAnns(ann_ids)
-        path = os.path.join(self.data_root, self.coco.loadImgs(int(img_id))[0]['file_name'])
+        path = os.path.join(self.data_root, self.coco.loadImgs(int(img_id))[0]["file_name"])
         return anno, path, img_id
 
     def read_original_data(self, anno, path):
         img = cv2.imread(path)
         # Extract polygon annotations and converts it into a list containing np.arrays storing x,y
         # Syntax - gt_circles[object_number][0][polygram_index]
-        instance_polys = [[np.array(poly).reshape(-1, 2) for poly in obj['segmentation']] for obj in anno]
-        cls_ids = [self.json_category_id_to_contiguous_id[obj['category_id']] for obj in anno]
+        instance_polys = [
+            [np.array(poly).reshape(-1, 2) for poly in obj["segmentation"]] for obj in anno
+        ]
+        cls_ids = [self.json_category_id_to_contiguous_id[obj["category_id"]] for obj in anno]
         return img, instance_polys, cls_ids
 
     def read_original_circle_data(self, anno, path):
@@ -53,18 +59,24 @@ class Dataset(data.Dataset):
         img = cv2.imread(path)
         gt_circles = []
         for ann in anno:
-            gt_circles.append({
-                "circle_center": ann["circle_center"],
-                "circle_radius": ann["circle_radius"]
-                # "class_id" : ann["category_id"]
-            })
-        instance_polys = [[np.array(poly).reshape(-1, 2) for poly in obj['segmentation']] for obj in anno]
+            gt_circles.append(
+                {
+                    "circle_center": ann["circle_center"],
+                    "circle_radius": ann["circle_radius"]
+                    # "class_id" : ann["category_id"]
+                }
+            )
+        instance_polys = [
+            [np.array(poly).reshape(-1, 2) for poly in obj["segmentation"]] for obj in anno
+        ]
 
-        cls_ids = [self.json_category_id_to_contiguous_id[obj['category_id']] for obj in anno]
+        cls_ids = [self.json_category_id_to_contiguous_id[obj["category_id"]] for obj in anno]
         return img, instance_polys, gt_circles, cls_ids
 
     # Convert gt_circle annotations for flipping
-    def transform_original_circle_data(self, instance_polys, gt_circles, flipped, width, trans_output, inp_out_hw):
+    def transform_original_circle_data(
+        self, instance_polys, gt_circles, flipped, width, trans_output, inp_out_hw
+    ):
         output_h, output_w = inp_out_hw[2:]
         gt_circles_ = []
         instance_polys_ = []
@@ -76,11 +88,16 @@ class Dataset(data.Dataset):
                 circle["circle_center"][0] = width - circle["circle_center"][0] - 1
 
             # Perform affine transformation on annotations
-            circle["circle_center"] = snake_coco_utils.affine_transform_point(circle["circle_center"], trans_output)
+            circle["circle_center"] = snake_coco_utils.affine_transform_point(
+                circle["circle_center"], trans_output
+            )
             circle["circle_radius"] = circle["circle_radius"] * trans_output[0][0]
 
             # Verify object is still in image
-            if 0 <= circle["circle_center"][0] < output_w - 1 and 0 <= circle["circle_center"][1] < output_h - 1:
+            if (
+                0 <= circle["circle_center"][0] < output_w - 1
+                and 0 <= circle["circle_center"][1] < output_h - 1
+            ):
                 gt_circles_.append(circle.copy())
 
                 # Transform poly
@@ -126,7 +143,9 @@ class Dataset(data.Dataset):
             extreme_points.append(points)
         return extreme_points
 
-    def prepare_detection(self, circle, poly, ct_hm, cls_id, retCenter, retRadius, reg, ct_cls, ct_ind):
+    def prepare_detection(
+        self, circle, poly, ct_hm, cls_id, retCenter, retRadius, reg, ct_cls, ct_ind
+    ):
         """
         Prepares the heatmaps for detection
 
@@ -162,7 +181,7 @@ class Dataset(data.Dataset):
         ct_float = ct.copy()
         ct = np.round(ct).astype(np.int32)
 
-        gauss_radius = data_utils.gaussian_radius((math.ceil(radius*2), math.ceil(radius*2)))
+        gauss_radius = data_utils.gaussian_radius((math.ceil(radius * 2), math.ceil(radius * 2)))
         gauss_radius = max(0, int(round(gauss_radius)))
         data_utils.draw_umich_gaussian(ct_hm, ct, gauss_radius)
         retRadius.append([radius])
@@ -172,7 +191,7 @@ class Dataset(data.Dataset):
         # assert (0 <= y < 127)
         retCenter.append([x, y])
 
-        assert (0 <= ct[1] * ct_hm.shape[1] + ct[0] <= ct_hm.shape[0] * ct_hm.shape[1])
+        assert 0 <= ct[1] * ct_hm.shape[1] + ct[0] <= ct_hm.shape[0] * ct_hm.shape[1]
         ct_ind.append(ct[1] * ct_hm.shape[1] + ct[0])
         reg.append((ct_float - ct).tolist())
 
@@ -194,7 +213,9 @@ class Dataset(data.Dataset):
 
         img_init_poly = snake_coco_utils.get_init(box)
         img_init_poly = snake_coco_utils.uniformsample(img_init_poly, snake_config.init_poly_num)
-        can_init_poly = snake_coco_utils.img_poly_to_can_poly(img_init_poly, x_min, y_min, x_max, y_max)
+        can_init_poly = snake_coco_utils.img_poly_to_can_poly(
+            img_init_poly, x_min, y_min, x_max, y_max
+        )
         img_gt_poly = extreme_point
         can_gt_poly = snake_coco_utils.img_poly_to_can_poly(img_gt_poly, x_min, y_min, x_max, y_max)
 
@@ -203,17 +224,21 @@ class Dataset(data.Dataset):
         i_gt_4pys.append(img_gt_poly)
         c_gt_4pys.append(can_gt_poly)
 
-    def prepare_evolution(self, poly, gt_circle, img_init_polys, can_init_polys, img_gt_polys, can_gt_polys):
+    def prepare_evolution(
+        self, poly, gt_circle, img_init_polys, can_init_polys, img_gt_polys, can_gt_polys
+    ):
         x_min, y_min = np.min(poly[:, 0]), np.min(poly[:, 1])
         x_max, y_max = np.max(poly[:, 0]), np.max(poly[:, 1])
 
         # octagon = snake_coco_utils.get_octagon(extreme_point)
         img_init_poly = snake_coco_utils.uniformsample_circle(gt_circle, snake_config.poly_num)
-        can_init_poly = snake_coco_utils.img_poly_to_can_poly(img_init_poly, x_min, y_min, x_max, y_max)
+        can_init_poly = snake_coco_utils.img_poly_to_can_poly(
+            img_init_poly, x_min, y_min, x_max, y_max
+        )
 
         img_gt_poly = snake_coco_utils.uniformsample(poly, len(poly) * snake_config.gt_poly_num)
         tt_idx = np.argmin(np.power(img_gt_poly - img_init_poly[0], 2).sum(axis=1))
-        img_gt_poly = np.roll(img_gt_poly, -tt_idx, axis=0)[::len(poly)]
+        img_gt_poly = np.roll(img_gt_poly, -tt_idx, axis=0)[:: len(poly)]
         can_gt_poly = snake_coco_utils.img_poly_to_can_poly(img_gt_poly, x_min, y_min, x_max, y_max)
 
         img_init_polys.append(img_init_poly)
@@ -231,16 +256,30 @@ class Dataset(data.Dataset):
         height, width = img.shape[0], img.shape[1]
 
         # Augment image
-        orig_img, inp, trans_input, trans_output, flipped, center, scale, inp_out_hw = \
-            snake_coco_utils.augment_circle(
-                img, self.split,
-                snake_config.data_rng, snake_config.eig_val, snake_config.eig_vec,
-                snake_config.mean, snake_config.std, instance_polys
-            )
+        (
+            orig_img,
+            inp,
+            trans_input,
+            trans_output,
+            flipped,
+            center,
+            scale,
+            inp_out_hw,
+        ) = snake_coco_utils.augment_circle(
+            img,
+            self.split,
+            snake_config.data_rng,
+            snake_config.eig_val,
+            snake_config.eig_vec,
+            snake_config.mean,
+            snake_config.std,
+            instance_polys,
+        )
 
         # Fits annotations to image augmentation
-        gt_circles, instance_polys = self.transform_original_circle_data(instance_polys, gt_circles, flipped, width,
-                                                                         trans_output, inp_out_hw)
+        gt_circles, instance_polys = self.transform_original_circle_data(
+            instance_polys, gt_circles, flipped, width, trans_output, inp_out_hw
+        )
 
         # Makes sure polygons are valid
         instance_polys = self.get_valid_polys(instance_polys, inp_out_hw)
@@ -276,34 +315,44 @@ class Dataset(data.Dataset):
                 x_max, y_max = np.max(poly[:, 0]), np.max(poly[:, 1])
                 # bbox = [x_min, y_min, x_max, y_max]
                 h, w = y_max - y_min + 1, x_max - x_min + 1
-                if cfg.filter_border and (x_min < 0\
-                        or y_min < 0\
-                        or x_max > 127\
-                        or y_max > 127\
-                        or x - r < 0 \
-                        or y - r < 0 \
-                        or x + r > 127 \
-                        or y + r > 127):
+                if cfg.filter_border and (
+                    x_min < 0
+                    or y_min < 0
+                    or x_max > 127
+                    or y_max > 127
+                    or x - r < 0
+                    or y - r < 0
+                    or x + r > 127
+                    or y + r > 127
+                ):
                     continue
-                if h <= 0 \
-                        or w <= 0\
-                        or x < 0\
-                        or y < 0\
-                        or x > 127\
-                        or y > 127:
+                if h <= 0 or w <= 0 or x < 0 or y < 0 or x > 127 or y > 127:
                     continue
 
-
-                self.prepare_detection(gt_circle, poly, ct_hm, cls_id, circle_center, radius, reg, ct_cls, ct_ind)
+                self.prepare_detection(
+                    gt_circle, poly, ct_hm, cls_id, circle_center, radius, reg, ct_cls, ct_ind
+                )
                 # gt_circle = self.prepare_detection(poly, gt_circle, ct_hm, cls_id, radius, center, reg, ct_cls, ct_ind)
                 # self.prepare_init(decode_box, extreme_point, i_it_4pys, c_it_4pys, i_gt_4pys, c_gt_4pys, output_h, output_w)
                 self.prepare_evolution(poly, gt_circle, i_it_pys, c_it_pys, i_gt_pys, c_gt_pys)
 
-        ret = {'inp': inp}
-        detection = {'ct_hm': ct_hm, 'center': center, 'circle_center': circle_center, 'radius': radius,
-                     'reg': reg, 'ct_cls': ct_cls, 'ct_ind': ct_ind}
+        ret = {"inp": inp}
+        detection = {
+            "ct_hm": ct_hm,
+            "center": center,
+            "circle_center": circle_center,
+            "radius": radius,
+            "reg": reg,
+            "ct_cls": ct_cls,
+            "ct_ind": ct_ind,
+        }
         # init = {'i_it_4py': i_it_4pys, 'c_it_4py': c_it_4pys, 'i_gt_4py': i_gt_4pys, 'c_gt_4py': c_gt_4pys}
-        evolution = {'i_it_py': i_it_pys, 'c_it_py': c_it_pys, 'i_gt_py': i_gt_pys, 'c_gt_py': c_gt_pys}
+        evolution = {
+            "i_it_py": i_it_pys,
+            "c_it_py": c_it_pys,
+            "i_gt_py": i_gt_pys,
+            "c_gt_py": c_gt_pys,
+        }
         ret.update(detection)
         # ret.update(init)
         ret.update(evolution)
@@ -316,8 +365,8 @@ class Dataset(data.Dataset):
             visualize_utils.visualize_snake_evolution(orig_img, ret)
 
         ct_num = len(ct_ind)
-        meta = {'center': center, 'scale': scale, 'img_id': img_id, 'ann': ann, 'ct_num': ct_num}
-        ret.update({'meta': meta})
+        meta = {"center": center, "scale": scale, "img_id": img_id, "ann": ann, "ct_num": ct_num}
+        ret.update({"meta": meta})
 
         return ret
 

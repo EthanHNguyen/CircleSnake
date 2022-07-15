@@ -1,6 +1,7 @@
-import unittest
-import torch
 import os
+import unittest
+
+import torch
 from rename_state_dict_keys import rename_state_dict_keys
 
 

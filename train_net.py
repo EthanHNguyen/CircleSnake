@@ -1,10 +1,12 @@
-from lib.config import cfg, args
-from lib.networks import make_network
-from lib.train import make_trainer, make_optimizer, make_lr_scheduler, make_recorder, set_lr_scheduler
-from lib.datasets import make_data_loader
-from lib.utils.net_utils import load_model, save_model, load_network
-from lib.evaluators import make_evaluator
 import torch.multiprocessing
+
+from lib.config import args, cfg
+from lib.datasets import make_data_loader
+from lib.evaluators import make_evaluator
+from lib.networks import make_network
+from lib.train import (make_lr_scheduler, make_optimizer, make_recorder,
+                       make_trainer, set_lr_scheduler)
+from lib.utils.net_utils import load_model, load_network, save_model
 
 
 def train(cfg, network):
@@ -13,17 +15,24 @@ def train(cfg, network):
     scheduler = make_lr_scheduler(cfg, optimizer)
     recorder = make_recorder(cfg)
 
-    if cfg.segm_or_bbox == 'both':
-        cfg.segm_or_bbox = 'segm'
+    if cfg.segm_or_bbox == "both":
+        cfg.segm_or_bbox = "segm"
         segm_evaluator = make_evaluator(cfg)
-        cfg.segm_or_bbox = 'bbox'
+        cfg.segm_or_bbox = "bbox"
         det_evaluator = make_evaluator(cfg)
-        cfg.segm_or_bbox = 'both'
+        cfg.segm_or_bbox = "both"
     else:
         evaluator = make_evaluator(cfg)
 
-    begin_epoch = load_model(network, optimizer, scheduler, recorder, cfg.model_dir, resume=cfg.resume,
-                             pretrain=cfg.pretrain)
+    begin_epoch = load_model(
+        network,
+        optimizer,
+        scheduler,
+        recorder,
+        cfg.model_dir,
+        resume=cfg.resume,
+        pretrain=cfg.pretrain,
+    )
     # set_lr_scheduler(cfg, scheduler)
 
     train_loader = make_data_loader(cfg, is_train=True)
@@ -38,7 +47,7 @@ def train(cfg, network):
             save_model(network, optimizer, scheduler, recorder, epoch, cfg.model_dir)
 
         if (epoch + 1) % cfg.eval_ep == 0:
-            if cfg.segm_or_bbox == 'both':
+            if cfg.segm_or_bbox == "both":
                 trainer.val(epoch, val_loader, det_evaluator, recorder)
                 trainer.val(epoch, val_loader, segm_evaluator, recorder)
             else:

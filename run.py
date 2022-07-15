@@ -1,13 +1,15 @@
-import cv2
-
-from lib.config import cfg, args
-import numpy as np
 import os
+
+import cv2
+import numpy as np
+
+from lib.config import args, cfg
 
 
 def run_dataset():
-    from lib.datasets import make_data_loader
     import tqdm
+
+    from lib.datasets import make_data_loader
 
     cfg.train.num_workers = 0
     data_loader = make_data_loader(cfg, is_train=False)
@@ -16,12 +18,14 @@ def run_dataset():
 
 
 def run_network():
-    from lib.networks import make_network
-    from lib.datasets import make_data_loader
-    from lib.utils.net_utils import load_network
-    import tqdm
-    import torch
     import time
+
+    import torch
+    import tqdm
+
+    from lib.datasets import make_data_loader
+    from lib.networks import make_network
+    from lib.utils.net_utils import load_network
 
     network = make_network(cfg).cuda()
     load_network(network, cfg.model_dir, epoch=cfg.test.epoch)
@@ -31,22 +35,23 @@ def run_network():
     total_time = 0
     for batch in tqdm.tqdm(data_loader):
         for k in batch:
-            if k != 'meta':
+            if k != "meta":
                 batch[k] = batch[k].cuda()
         with torch.no_grad():
             torch.cuda.synchronize()
             start = time.time()
-            network(batch['inp'])
+            network(batch["inp"])
             torch.cuda.synchronize()
             total_time += time.time() - start
     print(total_time / len(data_loader))
 
 
 def run_evaluate():
+    import torch
+    import tqdm
+
     from lib.datasets import make_data_loader
     from lib.evaluators import make_evaluator
-    import tqdm
-    import torch
     from lib.networks import make_network
     from lib.utils.net_utils import load_network
 
@@ -61,7 +66,7 @@ def run_evaluate():
         evaluator = make_evaluator(cfg)
 
         for batch in tqdm.tqdm(data_loader):
-            inp = batch['inp'].cuda()
+            inp = batch["inp"].cuda()
             # inp_rotated = torch.from_numpy(cv2.rotate(batch['inp'].numpy().reshape(512, 512, 3), cv2.ROTATE_90_CLOCKWISE).reshape(1, 3, 512, 512)).cuda()
             with torch.no_grad():
                 output = network(inp, batch)
@@ -72,7 +77,7 @@ def run_evaluate():
 
         cfg.rotate = 90
         for batch in tqdm.tqdm(data_loader):
-            inp = batch['inp'].cuda()
+            inp = batch["inp"].cuda()
             with torch.no_grad():
                 output = network(inp, batch)
             evaluator.evaluate_rotate(output, batch, rotate=True)
@@ -83,7 +88,7 @@ def run_evaluate():
         data_loader = make_data_loader(cfg, is_train=False)
         evaluator = make_evaluator(cfg)
         for batch in tqdm.tqdm(data_loader):
-            inp = batch['inp'].cuda()
+            inp = batch["inp"].cuda()
             with torch.no_grad():
                 output = network(inp, batch)
             evaluator.evaluate(output, batch)
@@ -91,11 +96,12 @@ def run_evaluate():
 
 
 def run_visualize():
-    from lib.networks import make_network
-    from lib.datasets import make_data_loader
-    from lib.utils.net_utils import load_network
-    import tqdm
     import torch
+    import tqdm
+
+    from lib.datasets import make_data_loader
+    from lib.networks import make_network
+    from lib.utils.net_utils import load_network
     from lib.visualizers import make_visualizer
 
     network = make_network(cfg).cuda()
@@ -106,22 +112,24 @@ def run_visualize():
     visualizer = make_visualizer(cfg)
     for batch in tqdm.tqdm(data_loader):
         for k in batch:
-            if k != 'meta':
+            if k != "meta":
                 batch[k] = batch[k].cuda()
         with torch.no_grad():
-            output = network(batch['inp'], batch)
+            output = network(batch["inp"], batch)
         visualizer.visualize(output, batch)
 
 
 def run_sbd():
     from tools import convert_sbd
+
     convert_sbd.convert_sbd()
 
 
 def run_demo():
     from tools import demo
+
     demo.demo()
 
 
-if __name__ == '__main__':
-    globals()['run_'+args.type]()
+if __name__ == "__main__":
+    globals()["run_" + args.type]()

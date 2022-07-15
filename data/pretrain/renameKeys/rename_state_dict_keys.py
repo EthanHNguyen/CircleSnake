@@ -1,5 +1,6 @@
-import torch
 from collections import OrderedDict
+
+import torch
 
 
 def rename_state_dict_keys(source, key_transformation, target=None):
