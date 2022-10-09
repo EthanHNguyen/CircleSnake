@@ -3,6 +3,18 @@ from lib.config import cfg
 
 class DatasetCatalog(object):
     dataset_attrs = {
+        "eosTrain": {
+            "id": "coco",
+            "data_root": "data/eos/train",
+            "ann_file": "data/eos/train.json",
+            "split": "train",
+        },
+        "eosTest": {
+            "id": "coco_test",
+            "data_root": "data/eos/train",
+            "ann_file": "data/eos/train.json",
+            "split": "test",
+        },
         "monusegTrain": {
             "id": "coco",
             "data_root": "data/monuseg/train",
